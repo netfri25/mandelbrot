@@ -33,7 +33,7 @@ impl<T: Float + FromPrimitive> Producer<T> for NaiveProducer {
 fn divergence_iteration<T: Float + FromPrimitive>(c: Complex<T>, max_iterations: u32) -> u32 {
     let mut z = c;
 
-    let bound_squared = T::from_f32(2.0).unwrap();
+    let bound_squared = T::from_f32(5.0).unwrap();
     let mut iteration = 1;
 
     loop {
