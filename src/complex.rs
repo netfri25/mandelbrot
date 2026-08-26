@@ -1,31 +1,36 @@
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
-
-use num_traits::Float;
+use num_traits::NumOps;
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub struct Complex<T: Float> {
+pub struct Complex<T> {
     pub re: T,
     pub im: T,
 }
 
-impl<T: Float> Complex<T> {
+impl<T> Complex<T> {
     pub fn new(re: T, im: T) -> Self {
         Self { re, im }
     }
 
-    pub fn conj(self) -> Self {
+    pub fn conj(self) -> Self
+    where
+        T: Neg<Output = T>
+    {
         Self {
             im: -self.im,
             ..self
         }
     }
 
-    pub fn abs_squared(self) -> T {
-        self.re * self.re + self.im * self.im
+    pub fn abs_squared(&self) -> T
+    where
+        T: Add<T, Output = T> + Mul<T, Output = T> + Clone
+    {
+        self.re.clone() * self.re.clone() + self.im.clone() * self.im.clone()
     }
 }
 
-impl<T: Float> From<(T, T)> for Complex<T> {
+impl<T> From<(T, T)> for Complex<T> {
     fn from(value: (T, T)) -> Self {
         Self::new(value.0, value.1)
     }
@@ -33,7 +38,7 @@ impl<T: Float> From<(T, T)> for Complex<T> {
 
 impl<T> std::fmt::Display for Complex<T>
 where
-    T: Float + std::fmt::Display,
+    T: std::fmt::Display,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "({} + {}i)", self.re, self.im)
@@ -48,7 +53,10 @@ macro_rules! impl_binop {
         $func_assign:ident,
         | $lhs:ident , $rhs:ident | $body:expr
     ) => {
-        impl<T: Float> $name for Complex<T> {
+        impl<T> $name<Self> for Complex<T>
+        where
+            T: Clone + NumOps + Neg<Output = T>,
+        {
             type Output = Self;
 
             fn $func(self, rhs: Self) -> Self {
@@ -58,12 +66,13 @@ macro_rules! impl_binop {
             }
         }
 
-        impl<T: Float, U> $name_assign<U> for Complex<T>
+        impl<T, U> $name_assign<U> for Complex<T>
         where
+            T: Clone,
             Self: $name<U, Output = Self>,
         {
             fn $func_assign(&mut self, rhs: U) {
-                *self = $name::$func(*self, rhs)
+                *self = $name::$func(self.clone(), rhs)
             }
         }
     };
@@ -71,9 +80,8 @@ macro_rules! impl_binop {
 
 macro_rules! impl_binop_scalar {
     ($name:ident, $func:ident, | $lhs:ident, $rhs:ident | $body:expr) => {
-        impl<T: Float> $name<T> for Complex<T> {
+        impl<T: $name<T, Output = T> + Clone> $name<T> for Complex<T> {
             type Output = Self;
-
             fn $func(self, rhs: T) -> Self {
                 let $lhs = self;
                 let $rhs = rhs;
@@ -83,7 +91,7 @@ macro_rules! impl_binop_scalar {
     };
 }
 
-impl<T: Float> Neg for Complex<T> {
+impl<T: Neg<Output = T>> Neg for Complex<T> {
     type Output = Self;
 
     fn neg(self) -> Self {
@@ -116,7 +124,7 @@ impl_binop_scalar! {
     Mul,
     mul,
     |lhs, rhs| Self {
-        re: lhs.re * rhs,
+        re: lhs.re * rhs.clone(),
         im: lhs.im * rhs,
     }
 }
@@ -125,7 +133,7 @@ impl_binop_scalar! {
     Div,
     div,
     |lhs, rhs| Self {
-        re: lhs.re / rhs,
+        re: lhs.re / rhs.clone(),
         im: lhs.im / rhs,
     }
 }
@@ -159,7 +167,7 @@ impl_binop! {
     MulAssign,
     mul_assign,
     |lhs, rhs| Self {
-        re: (lhs.re * rhs.re) - (lhs.im * rhs.im),
+        re: (lhs.re.clone() * rhs.re.clone()) - (lhs.im.clone() * rhs.im.clone()),
         im: (lhs.re * rhs.im) + (lhs.im * rhs.re),
     }
 }
@@ -174,8 +182,8 @@ impl_binop! {
     DivAssign,
     div_assign,
     |lhs, rhs| {
-        let num = lhs * rhs.conj();
-        let den = rhs.re * rhs.re + rhs.im * rhs.im;
+        let num = lhs * rhs.clone().conj();
+        let den = rhs.re.clone() * rhs.re + rhs.im.clone() * rhs.im;
         num / den
     }
 }

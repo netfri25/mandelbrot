@@ -4,13 +4,11 @@ use macroquad::prelude::*;
 use num_traits::FromPrimitive;
 
 use crate::complex::Complex;
-pub use crate::fast_f32::FastF32;
-pub use crate::fast_f64::FastF64;
+pub use crate::fast_float::{FastF32, FastF64};
 use crate::renderer::Renderer;
 
 mod complex;
-mod fast_f32;
-mod fast_f64;
+mod fast_float;
 mod producer;
 mod renderer;
 mod types;
@@ -40,12 +38,11 @@ fn conf() -> Conf {
 #[macroquad::main(conf)]
 async fn main() {
     let mut producer = producer::naive::NaiveProducer::new(ITERATIONS);
+
+    #[allow(clippy::useless_conversion)]
     let mut renderer = renderer::macroquad::MacroquadRenderer::new(
         FromPrimitive::from_f32(ZOOM).unwrap(),
-        Complex::new(
-            FromPrimitive::from_f32(-0.2).unwrap(),
-            FromPrimitive::from_f32(0.).unwrap(),
-        ),
+        Complex::new(0.2.into(), 0.0.into()),
         RESOLUTION,
     );
 

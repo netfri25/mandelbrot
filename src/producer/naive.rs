@@ -1,4 +1,6 @@
-use num_traits::{Float, FromPrimitive};
+use std::ops::{Add, Neg};
+
+use num_traits::NumOps;
 
 use super::Producer;
 
@@ -15,17 +17,20 @@ impl NaiveProducer {
     }
 }
 
-impl<T: Float + FromPrimitive> Producer<T> for NaiveProducer {
+impl<T> Producer<T> for NaiveProducer
+where
+    T: From<f32> + Clone + PartialOrd + NumOps + Neg<Output = T>,
+{
     fn produce(&mut self, start: Pos<T>, size: Size<T>, dims: Dimensions) -> Vec<f32> {
         let max_iterations = self.max_iterations;
-        let step_x = size.w / T::from_usize(dims.w).unwrap();
-        let step_y = size.h / T::from_usize(dims.h).unwrap();
+        let step_x = size.w / T::from(dims.w as f32);
+        let step_y = size.h / T::from(dims.h as f32);
 
         range(start.y, step_y)
             .take(dims.h)
             .flat_map(move |y| {
-                range(start.x, step_x).take(dims.w).map(move |x| {
-                    let value = Complex::new(x, y);
+                range(start.x.clone(), step_x.clone()).take(dims.w).map(move |x| {
+                    let value = Complex::new(x, y.clone());
                     (divergence_iteration(value, max_iterations) as f32)
                         .algebraic_div(max_iterations as f32)
                 })
@@ -34,10 +39,13 @@ impl<T: Float + FromPrimitive> Producer<T> for NaiveProducer {
     }
 }
 
-fn divergence_iteration<T: Float + FromPrimitive>(c: Complex<T>, max_iterations: u32) -> u32 {
-    let mut z = c;
+fn divergence_iteration<T>(c: Complex<T>, max_iterations: u32) -> u32
+where
+    T: From<f32> + Clone + PartialOrd + NumOps + Neg<Output = T>,
+{
+    let mut z = c.clone();
 
-    let bound_squared = T::from_f32(5.0).unwrap();
+    let bound_squared = T::from(5.0);
     let mut iteration = 1;
 
     loop {
@@ -49,7 +57,7 @@ fn divergence_iteration<T: Float + FromPrimitive>(c: Complex<T>, max_iterations:
             return iteration;
         }
 
-        z = z * z + c;
+        z = z.clone() * z + c.clone();
 
         // will return `None` on overflow, which is the expected behavior, since `None` represents
         // divergence
@@ -57,6 +65,9 @@ fn divergence_iteration<T: Float + FromPrimitive>(c: Complex<T>, max_iterations:
     }
 }
 
-fn range<T: Float>(start: T, step: T) -> impl Iterator<Item = T> {
-    std::iter::successors(Some(start), move |x| Some(*x + step))
+fn range<T>(start: T, step: T) -> impl Iterator<Item = T>
+where
+    T: Add<T, Output = T> + Clone
+{
+    std::iter::successors(Some(start), move |x| Some(x.clone() + step.clone()))
 }

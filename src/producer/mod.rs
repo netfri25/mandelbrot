@@ -1,10 +1,8 @@
-use num_traits::Float;
-
 use crate::types::{Dimensions, Pos, Size};
 
 pub mod naive;
 
-pub trait Producer<T: Float> {
+pub trait Producer<T> {
     // TODO: add doc comment that explains this method
     fn produce(&mut self, start: Pos<T>, size: Size<T>, dims: Dimensions) -> Vec<f32>;
 }
