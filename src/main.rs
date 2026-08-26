@@ -6,6 +6,7 @@ use crate::fast_f64::FastF64;
 use crate::renderer::Renderer;
 
 mod complex;
+mod fast_f32;
 mod fast_f64;
 mod producer;
 mod renderer;
