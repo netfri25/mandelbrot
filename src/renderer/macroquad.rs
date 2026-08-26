@@ -9,11 +9,12 @@ use super::Renderer;
 #[derive(Default)]
 pub struct MacroquadRenderer {
     scale: f64,
+    offset: DVec2, // in percentage
 }
 
 impl MacroquadRenderer {
-    pub fn new(scale: f64) -> Self {
-        Self { scale }
+    pub fn new(scale: f64, offset: DVec2) -> Self {
+        Self { scale, offset }
     }
 }
 
@@ -28,9 +29,10 @@ impl<T: Float + FromPrimitive> Renderer<T> for MacroquadRenderer {
             h: T::from_f64(self.scale).unwrap(),
         };
 
+        let top_left = (-0.5 + self.offset) * self.scale;
         let top_left = Pos {
-            x: T::from_f64(-0.5 * self.scale).unwrap(),
-            y: T::from_f64(-0.5 * self.scale).unwrap(),
+            x: T::from_f64(top_left.x).unwrap(),
+            y: T::from_f64(top_left.y).unwrap(),
         };
 
         let step_x = T::from_f64(self.scale / w).unwrap();

@@ -34,7 +34,7 @@ fn conf() -> Conf {
 #[macroquad::main(conf)]
 async fn main() {
     let mut producer = producer::naive::NaiveProducer::new(500);
-    let mut renderer = renderer::macroquad::MacroquadRenderer::new(SCALE);
+    let mut renderer = renderer::macroquad::MacroquadRenderer::new(SCALE, DVec2::new(-0.2, 0.));
 
     loop {
         clear_background(BLACK);
