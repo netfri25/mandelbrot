@@ -1,0 +1,8 @@
+[package]
+name = "almond"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+macroquad = "0.4.16"
+num-traits = "0.2.19"
