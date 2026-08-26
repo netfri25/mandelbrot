@@ -24,3 +24,9 @@ pub struct Size<N: Float> {
     pub w: N,
     pub h: N,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Dimensions {
+    pub w: usize,
+    pub h: usize,
+}

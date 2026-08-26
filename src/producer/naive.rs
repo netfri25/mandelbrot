@@ -3,7 +3,7 @@ use num_traits::{Float, FromPrimitive};
 use super::Producer;
 
 use crate::complex::Complex;
-use crate::types::{Pos, Size};
+use crate::types::{Dimensions, Pos, Size};
 
 pub struct NaiveProducer {
     max_iterations: u32,
@@ -16,11 +16,15 @@ impl NaiveProducer {
 }
 
 impl<T: Float + FromPrimitive> Producer<T> for NaiveProducer {
-    fn produce(&mut self, pos: Pos<T>, size: Size<T>, step_x: T, step_y: T) -> Vec<f32> {
+    fn produce(&mut self, start: Pos<T>, size: Size<T>, dims: Dimensions) -> Vec<f32> {
         let max_iterations = self.max_iterations;
-        range(pos.y, size.h, step_y)
+        let step_x = size.w / T::from_usize(dims.w).unwrap();
+        let step_y = size.h / T::from_usize(dims.h).unwrap();
+
+        range(start.y, step_y)
+            .take(dims.h)
             .flat_map(move |y| {
-                range(pos.x, size.w, step_x).map(move |x| {
+                range(start.x, step_x).take(dims.w).map(move |x| {
                     let value = Complex::new(x, y);
                     (divergence_iteration(value, max_iterations) as f32)
                         .algebraic_div(max_iterations as f32)
@@ -53,13 +57,6 @@ fn divergence_iteration<T: Float + FromPrimitive>(c: Complex<T>, max_iterations:
     }
 }
 
-fn range<T: Float>(start: T, size: T, step: T) -> impl Iterator<Item = T> {
-    let amount = (size / step).to_usize().unwrap();
-    let mut value = start;
-    std::iter::from_fn(move || {
-        let result = value;
-        value = value + step;
-        Some(result)
-    })
-    .take(amount)
+fn range<T: Float>(start: T, step: T) -> impl Iterator<Item = T> {
+    std::iter::successors(Some(start), move |x| Some(*x + step))
 }

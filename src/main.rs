@@ -1,8 +1,11 @@
 use std::time::Instant;
 
 use macroquad::prelude::*;
+use num_traits::FromPrimitive;
 
-use crate::fast_f64::FastF64;
+use crate::complex::Complex;
+pub use crate::fast_f32::FastF32;
+pub use crate::fast_f64::FastF64;
 use crate::renderer::Renderer;
 
 mod complex;
@@ -12,9 +15,11 @@ mod producer;
 mod renderer;
 mod types;
 
-const WIDTH: i32 = 500;
-const HEIGHT: i32 = 500;
-const SCALE: f64 = 3.;
+const WIDTH: i32 = 1000;
+const HEIGHT: i32 = 1000;
+const ZOOM: f32 = 1.;
+const RESOLUTION: f32 = 0.1;
+const ITERATIONS: u32 = 1000;
 
 fn conf() -> Conf {
     Conf {
@@ -34,21 +39,29 @@ fn conf() -> Conf {
 
 #[macroquad::main(conf)]
 async fn main() {
-    let mut producer = producer::naive::NaiveProducer::new(500);
-    let mut renderer = renderer::macroquad::MacroquadRenderer::new(SCALE, DVec2::new(-0.2, 0.));
+    let mut producer = producer::naive::NaiveProducer::new(ITERATIONS);
+    let mut renderer = renderer::macroquad::MacroquadRenderer::new(
+        FromPrimitive::from_f32(ZOOM).unwrap(),
+        Complex::new(
+            FromPrimitive::from_f32(-0.2).unwrap(),
+            FromPrimitive::from_f32(0.).unwrap(),
+        ),
+        RESOLUTION,
+    );
 
     loop {
         clear_background(BLACK);
 
         let start = Instant::now();
-        Renderer::<FastF64>::render(&mut renderer, &mut producer);
+        Renderer::<f64>::render(&mut renderer, &mut producer);
         let elapsed = start.elapsed();
         eprintln!(
-            "render took {:.02?} ({:.02} fps)",
+            "render took {:.02?} ({:.02} max fps)",
             elapsed,
             elapsed.as_secs_f32().recip()
         );
 
+        draw_fps();
         next_frame().await
     }
 }
