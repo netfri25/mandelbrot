@@ -1,9 +1,6 @@
 use std::time::Instant;
 
-use flexfloat::flexfloat::FlexFloat;
-use flexfloat::prelude::DefaultBitArray;
 use macroquad::prelude::*;
-use num_bigfloat::BigFloat;
 use num_traits::FromPrimitive;
 
 use crate::complex::Complex;
