@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 macroquad = "0.4.16"
 num-traits = "0.2.19"
+rayon = "1.12.0"

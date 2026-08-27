@@ -7,6 +7,7 @@ use super::Producer;
 use crate::complex::Complex;
 use crate::types::{Dimensions, Pos, Size};
 
+#[derive(Clone)]
 pub struct NaiveProducer {
     max_iterations: u32,
 }

@@ -1,6 +1,7 @@
 use crate::types::{Dimensions, Pos, Size};
 
 pub mod naive;
+pub mod threaded;
 
 pub trait Producer<T> {
     // TODO: add doc comment that explains this method

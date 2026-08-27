@@ -5,6 +5,7 @@ use num_traits::FromPrimitive;
 
 use crate::complex::Complex;
 pub use crate::fast_float::{FastF32, FastF64};
+use crate::producer::Producer;
 use crate::renderer::Renderer;
 
 mod complex;
@@ -18,6 +19,7 @@ const HEIGHT: i32 = 1000;
 const ZOOM: f32 = 1.;
 const RESOLUTION: f32 = 0.15;
 const ITERATIONS: u32 = 200;
+const THREADS: usize = 16;
 
 fn conf() -> Conf {
     Conf {
@@ -37,7 +39,9 @@ fn conf() -> Conf {
 
 #[macroquad::main(conf)]
 async fn main() {
-    let mut producer = producer::naive::NaiveProducer::new(ITERATIONS);
+    let producer = producer::naive::NaiveProducer::new(ITERATIONS);
+    let mut make_producer = move || Box::new(producer.clone()) as Box<dyn Producer<_> + Send>;
+    let mut producer = producer::threaded::ThreadedProducer::new(THREADS, &mut make_producer);
 
     #[allow(clippy::useless_conversion)]
     let mut renderer = renderer::macroquad::MacroquadRenderer::new(
