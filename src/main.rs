@@ -7,16 +7,17 @@ use crate::producer::Producer;
 use crate::renderer::Renderer;
 
 mod complex;
-mod exp;
+mod exp2;
 mod fast_float;
+mod from_f32;
 mod producer;
 mod renderer;
 mod types;
-mod from_f32;
 
 pub type Posit = fast_posit::Posit<64, 2, i64>;
 
-type NumberType = rug::Float;
+// change this to use a different type
+type NumberType = f64;
 
 const WIDTH: i32 = 500;
 const HEIGHT: i32 = 500;

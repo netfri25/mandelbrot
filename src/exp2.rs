@@ -1,45 +1,45 @@
-pub trait Exp {
-    fn exp(self) -> Self;
+pub trait Exp2 {
+    fn exp2(self) -> Self;
 }
 
-impl Exp for f32 {
-    fn exp(self) -> Self {
+impl Exp2 for f32 {
+    fn exp2(self) -> Self {
         self.exp2()
     }
 }
 
-impl Exp for f64 {
-    fn exp(self) -> Self {
+impl Exp2 for f64 {
+    fn exp2(self) -> Self {
         self.exp2()
     }
 }
 
-impl<E, F> Exp for flexfloat::flexfloat::FlexFloat<E, F>
+impl<E, F> Exp2 for flexfloat::flexfloat::FlexFloat<E, F>
 where
     E: flexfloat::BitArrayArith,
     F: flexfloat::BitArrayArith,
 {
-    fn exp(self) -> Self {
+    fn exp2(self) -> Self {
         self.exp2()
     }
 }
 
-impl<const N: usize> Exp for fastnum::decimal::Decimal<N> {
-    fn exp(self) -> Self {
+impl<const N: usize> Exp2 for fastnum::decimal::Decimal<N> {
+    fn exp2(self) -> Self {
         self.exp2()
     }
 }
 
-impl Exp for rug::Float {
-    fn exp(self) -> Self {
+impl Exp2 for rug::Float {
+    fn exp2(self) -> Self {
         self.exp2()
     }
 }
 
-impl<const N: u32, const ES: u32, const RS: u32, Int: fast_posit::Int> Exp
+impl<const N: u32, const ES: u32, const RS: u32, Int: fast_posit::Int> Exp2
     for fast_posit::Posit<N, ES, Int, RS>
 {
-    fn exp(self) -> Self {
+    fn exp2(self) -> Self {
         posit_exp2(self)
     }
 }

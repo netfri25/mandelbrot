@@ -2,7 +2,7 @@ use std::ops::{
     Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign,
 };
 
-use crate::exp::Exp;
+use crate::exp2::Exp2;
 use crate::from_f32::FromF32;
 
 macro_rules! impl_binop {
@@ -62,8 +62,8 @@ macro_rules! impl_all {
             }
         }
 
-        impl Exp for $target_name {
-            fn exp(self) -> Self {
+        impl Exp2 for $target_name {
+            fn exp2(self) -> Self {
                 Self(self.0.exp())
             }
         }

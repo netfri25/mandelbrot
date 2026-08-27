@@ -5,7 +5,7 @@ use std::ops::{Add, AddAssign, Mul, Neg, SubAssign};
 use macroquad::prelude::*;
 
 use crate::complex::Complex;
-use crate::exp::Exp;
+use crate::exp2::Exp2;
 use crate::from_f32::FromF32;
 use crate::producer::Producer;
 use crate::types::{Dimensions, Pos, Size};
@@ -51,7 +51,7 @@ where
 
 impl<T> MacroquadRenderer<T>
 where
-    T: FromF32 + Clone + Exp + Debug,
+    T: FromF32 + Clone + Exp2 + Debug,
     T: Mul<T, Output = T>,
     T: Neg<Output = T>,
     T: AddAssign<T>,
@@ -60,7 +60,7 @@ where
     pub fn handle_input(&mut self) -> bool {
         let dt = get_frame_time() * 20.;
         let zoom_delta = 0.05;
-        let offset_delta = T::from_f32(zoom_delta) * T::from_f32(self.zoom).exp();
+        let offset_delta = T::from_f32(zoom_delta) * T::from_f32(self.zoom).exp2();
 
         let mut update = false;
         update |= fast_key(&mut self.offset.im, KeyCode::W, -offset_delta.clone(), dt);
@@ -74,7 +74,7 @@ where
 
         if prev_zoom != self.zoom {
             eprintln!("new zoom: {:?}", self.zoom);
-            eprintln!("zoom exp: {:?}", T::from_f32(self.zoom).exp());
+            eprintln!("zoom exp: {:?}", T::from_f32(self.zoom).exp2());
         }
 
         update
@@ -83,7 +83,7 @@ where
 
 impl<T> Renderer<T> for MacroquadRenderer<T>
 where
-    T: FromF32 + Clone + Exp + Debug,
+    T: FromF32 + Clone + Exp2 + Debug,
     T: Add<T, Output = T>,
     T: Mul<T, Output = T>,
     T: Neg<Output = T>,
@@ -100,7 +100,7 @@ where
         };
 
         if self.frame.is_empty() || update {
-            let zoom: T = T::from_f32(self.zoom).exp();
+            let zoom: T = T::from_f32(self.zoom).exp2();
 
             let size = Size {
                 w: zoom.clone(),
