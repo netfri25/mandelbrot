@@ -44,7 +44,10 @@ fn conf() -> Conf {
 
 #[macroquad::main(conf)]
 async fn main() {
-    rayon::ThreadPoolBuilder::new().num_threads(THREADS).build_global().unwrap();
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(THREADS)
+        .build_global()
+        .unwrap();
 
     let producer = producer::naive::NaiveProducer::new(ITERATIONS);
     let mut make_producer = move || Box::new(producer.clone()) as Box<dyn Producer<_> + Send>;

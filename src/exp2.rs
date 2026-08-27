@@ -50,8 +50,7 @@ use fast_posit::{Int, Posit, RoundFrom};
 fn posit_exp2<const N: u32, const ES: u32, I: Int, const RS: u32>(
     x: Posit<N, ES, I, RS>,
 ) -> Posit<N, ES, I, RS> {
-    type P<const N: u32, const ES: u32, I, const RS: u32> =
-        Posit<N, ES, I, RS>;
+    type P<const N: u32, const ES: u32, I, const RS: u32> = Posit<N, ES, I, RS>;
 
     const LN2: f64 = core::f64::consts::LN_2;
 
@@ -77,8 +76,7 @@ fn posit_exp2<const N: u32, const ES: u32, I: Int, const RS: u32>(
      *
      * Calculate the bound without converting x to an integer.
      */
-    let max_exp: u128 =
-        (N as u128 - 2) << ES;
+    let max_exp: u128 = (N as u128 - 2) << ES;
 
     /*
      * `max_exp` normally fits in i128 for the posit sizes practical here.

@@ -37,7 +37,6 @@ where
     T: Mul<T, Output = T>,
     T: AddAssign<T>,
 {
-
     if is_key_down(keycode) && is_key_down(KeyCode::LeftShift) {
         *target += T::from_f32(dt) * delta;
         true
@@ -64,13 +63,13 @@ where
 
         let mut update = false;
         update |= fast_key(&mut self.offset.im, KeyCode::W, -offset_delta.clone(), dt);
-        update |= fast_key(&mut self.offset.im, KeyCode::S,  offset_delta.clone(), dt);
+        update |= fast_key(&mut self.offset.im, KeyCode::S, offset_delta.clone(), dt);
         update |= fast_key(&mut self.offset.re, KeyCode::A, -offset_delta.clone(), dt);
-        update |= fast_key(&mut self.offset.re, KeyCode::D,  offset_delta.clone(), dt);
+        update |= fast_key(&mut self.offset.re, KeyCode::D, offset_delta.clone(), dt);
 
         let prev_zoom = self.zoom;
         update |= fast_key(&mut self.zoom, KeyCode::Equal, -zoom_delta, dt);
-        update |= fast_key(&mut self.zoom, KeyCode::Minus,  zoom_delta, dt);
+        update |= fast_key(&mut self.zoom, KeyCode::Minus, zoom_delta, dt);
 
         if prev_zoom != self.zoom {
             eprintln!("new zoom: {:?}", self.zoom);

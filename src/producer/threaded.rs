@@ -48,9 +48,11 @@ where
                 let section_h = section_h + (section_row < section_h_rem) as usize;
 
                 let start = Pos {
-                    x: T::from_f32(section_offset_x as f32) / T::from_f32(dims.w as f32) * size.w.clone()
+                    x: T::from_f32(section_offset_x as f32) / T::from_f32(dims.w as f32)
+                        * size.w.clone()
                         + start.x.clone(),
-                    y: T::from_f32(section_offset_y as f32) / T::from_f32(dims.h as f32) * size.h.clone()
+                    y: T::from_f32(section_offset_y as f32) / T::from_f32(dims.h as f32)
+                        * size.h.clone()
                         + start.y.clone(),
                 };
 
