@@ -4,6 +4,8 @@ use std::ops::{
 
 use num_traits::{Num, One, Zero};
 
+use crate::exp::Exp;
+
 macro_rules! impl_binop {
     (
         $target:ident,
@@ -54,6 +56,12 @@ macro_rules! impl_all {
     ($target_name:ident, $target_type:ident) => {
         #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
         pub struct $target_name(pub $target_type);
+
+        impl Exp for $target_name {
+            fn exp(self) -> Self {
+                Self(self.0.exp())
+            }
+        }
 
         impl Num for $target_name {
             type FromStrRadixErr = <$target_type as Num>::FromStrRadixErr;
