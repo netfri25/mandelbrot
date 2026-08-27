@@ -46,6 +46,13 @@ where
     }
 }
 
+fn range<T>(start: T, step: T) -> std::iter::Successors<T, impl FnMut(&T) -> Option<T>>
+where
+    T: Add<T, Output = T> + Clone,
+{
+    std::iter::successors(Some(start), move |x| Some(x.clone() + step.clone()))
+}
+
 fn divergence_iteration<T>(c: Complex<T>, max_iterations: u32) -> u32
 where
     T: FromF32 + Clone + PartialOrd,
@@ -66,21 +73,22 @@ where
     let mut iteration = 1;
 
     while x2.clone() + y2.clone() <= bound && iteration < max_iterations {
+        let prev_x = x.clone();
+        let prev_y = y.clone();
+
         x2 = x.clone() * x.clone();
         y2 = y.clone() * y.clone();
 
         y = T::from_f32(2.) * x.clone() * y + y0.clone();
         x = x2.clone() - y2.clone() + x0.clone();
 
+        // if it converges earlier, then it's inside
+        if prev_x == x && prev_y == y {
+            return max_iterations;
+        }
+
         iteration += 1;
     }
 
     iteration
-}
-
-fn range<T>(start: T, step: T) -> std::iter::Successors<T, impl FnMut(&T) -> Option<T>>
-where
-    T: Add<T, Output = T> + Clone,
-{
-    std::iter::successors(Some(start), move |x| Some(x.clone() + step.clone()))
 }
