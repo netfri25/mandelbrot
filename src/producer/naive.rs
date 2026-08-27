@@ -46,26 +46,28 @@ fn divergence_iteration<T>(c: Complex<T>, max_iterations: u32) -> u32
 where
     T: From<f32> + Clone + PartialOrd + NumOps + Neg<Output = T>,
 {
-    let mut z = c.clone();
+    let x0 = c.re;
+    let y0 = c.im;
 
-    let bound_squared = T::from(5.0);
+    let mut x = T::from(0.);
+    let mut y = T::from(0.);
+    let mut x2 = T::from(0.);
+    let mut y2 = T::from(0.);
+
+    let bound = T::from(4.0);
     let mut iteration = 1;
 
-    loop {
-        if iteration >= max_iterations {
-            return iteration;
-        }
+    while x2.clone() + y2.clone() <= bound && iteration < max_iterations {
+        x2 = x.clone()*x.clone();
+        y2 = y.clone()*y.clone();
 
-        if z.abs_squared() >= bound_squared {
-            return iteration;
-        }
+        y = T::from(2.) * x.clone() * y + y0.clone();
+        x = x2.clone() - y2.clone() + x0.clone();
 
-        z = z.clone() * z + c.clone();
-
-        // will return `None` on overflow, which is the expected behavior, since `None` represents
-        // divergence
         iteration += 1;
     }
+
+    iteration
 }
 
 fn range<T>(start: T, step: T) -> std::iter::Successors<T, impl FnMut(&T) -> Option<T>>
