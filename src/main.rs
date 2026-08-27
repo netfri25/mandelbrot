@@ -2,7 +2,6 @@ use macroquad::prelude::*;
 
 pub use crate::complex::Complex;
 pub use crate::fast_float::{FastF32, FastF64};
-use crate::from_f32::FromF32;
 use crate::producer::Producer;
 use crate::renderer::Renderer;
 
@@ -54,12 +53,8 @@ async fn main() {
     let mut producer = producer::threaded::ThreadedProducer::new(THREADS, &mut make_producer);
     let mut producer = producer::timed::TimedProducer(&mut producer);
 
-    #[allow(clippy::useless_conversion)]
-    let mut renderer = renderer::macroquad::MacroquadRenderer::new(
-        ZOOM,
-        Complex::new(FromF32::from_f32(0.2), FromF32::from_f32(0.0)),
-        RESOLUTION,
-    );
+    let mut renderer =
+        renderer::macroquad::MacroquadRenderer::new(ZOOM, Default::default(), RESOLUTION);
 
     loop {
         clear_background(BLACK);
