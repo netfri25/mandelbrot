@@ -20,7 +20,7 @@ impl NaiveProducer {
 
 impl<T> Producer<T> for NaiveProducer
 where
-    T: From<f32> + Clone + PartialOrd + NumOps + Neg<Output = T>
+    T: From<f32> + Clone + PartialOrd + NumOps + Neg<Output = T>,
 {
     fn produce(&mut self, start: Pos<T>, size: Size<T>, dims: Dimensions) -> Vec<f32> {
         let max_iterations = self.max_iterations;
@@ -58,8 +58,8 @@ where
     let mut iteration = 1;
 
     while x2.clone() + y2.clone() <= bound && iteration < max_iterations {
-        x2 = x.clone()*x.clone();
-        y2 = y.clone()*y.clone();
+        x2 = x.clone() * x.clone();
+        y2 = y.clone() * y.clone();
 
         y = T::from(2.) * x.clone() * y + y0.clone();
         x = x2.clone() - y2.clone() + x0.clone();

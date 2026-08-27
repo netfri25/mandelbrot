@@ -6,11 +6,11 @@ use crate::producer::Producer;
 use crate::renderer::Renderer;
 
 mod complex;
+mod exp;
 mod fast_float;
 mod producer;
 mod renderer;
 mod types;
-mod exp;
 
 type ZoomType = FastF64;
 type NumberType = FastF64;
@@ -58,5 +58,3 @@ async fn main() {
         next_frame().await
     }
 }
-
-

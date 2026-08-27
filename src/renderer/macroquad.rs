@@ -147,8 +147,20 @@ where
         }
 
         let size = screen_height() as f32 / 15.;
-        draw_text(format!("x: {}", self.offset.re), 0., 0.5 * size, size, WHITE);
-        draw_text(format!("y: {}", self.offset.im), 0., 1.5 * size, size, WHITE);
+        draw_text(
+            format!("x: {}", self.offset.re),
+            0.,
+            0.5 * size,
+            size,
+            WHITE,
+        );
+        draw_text(
+            format!("y: {}", self.offset.im),
+            0.,
+            1.5 * size,
+            size,
+            WHITE,
+        );
     }
 }
 

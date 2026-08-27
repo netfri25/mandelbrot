@@ -1,6 +1,3 @@
-
-
-
 pub trait Exp {
     fn exp(self) -> Self;
 }
@@ -26,7 +23,6 @@ where
         self.exp2()
     }
 }
-
 
 impl<const N: usize> Exp for fastnum::decimal::Decimal<N> {
     fn exp(self) -> Self {
