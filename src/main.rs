@@ -43,6 +43,7 @@ async fn main() {
     let producer = producer::naive::NaiveProducer::new(ITERATIONS);
     let mut make_producer = move || Box::new(producer.clone()) as Box<dyn Producer<_> + Send>;
     let mut producer = producer::threaded::ThreadedProducer::new(THREADS, &mut make_producer);
+    let mut producer = producer::timed::TimedProducer(&mut producer);
 
     #[allow(clippy::useless_conversion)]
     let mut renderer = renderer::macroquad::MacroquadRenderer::new(
