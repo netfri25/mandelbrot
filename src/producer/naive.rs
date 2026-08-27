@@ -1,10 +1,9 @@
-use std::ops::{Add, Neg};
-
-use num_traits::NumOps;
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
 use super::Producer;
 
 use crate::complex::Complex;
+use crate::from_f32::FromF32;
 use crate::types::{Dimensions, Pos, Size};
 
 #[derive(Clone)]
@@ -20,12 +19,17 @@ impl NaiveProducer {
 
 impl<T> Producer<T> for NaiveProducer
 where
-    T: From<f32> + Clone + PartialOrd + NumOps + Neg<Output = T>,
+    T: FromF32 + Clone + PartialOrd,
+    T: Neg<Output = T>,
+    T: Add<T, Output = T>,
+    T: Sub<T, Output = T>,
+    T: Mul<T, Output = T>,
+    T: Div<T, Output = T>,
 {
     fn produce(&mut self, start: Pos<T>, size: Size<T>, dims: Dimensions) -> Vec<f32> {
         let max_iterations = self.max_iterations;
-        let step_x = size.w / T::from(dims.w as f32);
-        let step_y = size.h / T::from(dims.h as f32);
+        let step_x = size.w / T::from_f32(dims.w as f32);
+        let step_y = size.h / T::from_f32(dims.h as f32);
 
         range(start.y, step_y)
             .take(dims.h)
@@ -44,24 +48,28 @@ where
 
 fn divergence_iteration<T>(c: Complex<T>, max_iterations: u32) -> u32
 where
-    T: From<f32> + Clone + PartialOrd + NumOps + Neg<Output = T>,
+    T: FromF32 + Clone + PartialOrd,
+    T: Neg<Output = T>,
+    T: Add<T, Output = T>,
+    T: Sub<T, Output = T>,
+    T: Mul<T, Output = T>,
 {
     let x0 = c.re;
     let y0 = c.im;
 
-    let mut x = T::from(0.);
-    let mut y = T::from(0.);
-    let mut x2 = T::from(0.);
-    let mut y2 = T::from(0.);
+    let mut x = T::from_f32(0.);
+    let mut y = T::from_f32(0.);
+    let mut x2 = T::from_f32(0.);
+    let mut y2 = T::from_f32(0.);
 
-    let bound = T::from(4.0);
+    let bound = T::from_f32(4.0);
     let mut iteration = 1;
 
     while x2.clone() + y2.clone() <= bound && iteration < max_iterations {
         x2 = x.clone() * x.clone();
         y2 = y.clone() * y.clone();
 
-        y = T::from(2.) * x.clone() * y + y0.clone();
+        y = T::from_f32(2.) * x.clone() * y + y0.clone();
         x = x2.clone() - y2.clone() + x0.clone();
 
         iteration += 1;

@@ -2,9 +2,8 @@ use std::ops::{
     Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign,
 };
 
-use num_traits::{Num, One, Zero};
-
 use crate::exp::Exp;
+use crate::from_f32::FromF32;
 
 macro_rules! impl_binop {
     (
@@ -57,33 +56,15 @@ macro_rules! impl_all {
         #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
         pub struct $target_name(pub $target_type);
 
+        impl FromF32 for $target_name {
+            fn from_f32(value: f32) -> Self {
+                Self::from(value)
+            }
+        }
+
         impl Exp for $target_name {
             fn exp(self) -> Self {
                 Self(self.0.exp())
-            }
-        }
-
-        impl Num for $target_name {
-            type FromStrRadixErr = <$target_type as Num>::FromStrRadixErr;
-
-            fn from_str_radix(str: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
-                <$target_type as Num>::from_str_radix(str, radix).map(Self)
-            }
-        }
-
-        impl One for $target_name {
-            fn one() -> Self {
-                Self($target_type::one())
-            }
-        }
-
-        impl Zero for $target_name {
-            fn zero() -> Self {
-                Self($target_type::zero())
-            }
-
-            fn is_zero(&self) -> bool {
-                self.0.is_zero()
             }
         }
 
@@ -96,9 +77,15 @@ macro_rules! impl_all {
             }
         }
 
+        impl std::fmt::LowerExp for $target_name {
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                std::fmt::LowerExp::fmt(&self.0, f)
+            }
+        }
+
         impl std::fmt::Display for $target_name {
             fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                self.0.fmt(f)
+                std::fmt::Display::fmt(&self.0, f)
             }
         }
 

@@ -1,7 +1,8 @@
 use macroquad::prelude::*;
 
-use crate::complex::Complex;
+pub use crate::complex::Complex;
 pub use crate::fast_float::{FastF32, FastF64};
+use crate::from_f32::FromF32;
 use crate::producer::Producer;
 use crate::renderer::Renderer;
 
@@ -11,15 +12,17 @@ mod fast_float;
 mod producer;
 mod renderer;
 mod types;
+mod from_f32;
 
-type ZoomType = FastF64;
-type NumberType = FastF64;
+pub type Posit = fast_posit::Posit<64, 2, i64>;
 
-const WIDTH: i32 = 1000;
-const HEIGHT: i32 = 1000;
-const ZOOM: f64 = 1.;
+type NumberType = rug::Float;
+
+const WIDTH: i32 = 500;
+const HEIGHT: i32 = 500;
+const ZOOM: f32 = 1.;
 const RESOLUTION: f32 = 0.15;
-const ITERATIONS: u32 = 200;
+const ITERATIONS: u32 = 400;
 const THREADS: usize = 16;
 
 fn conf() -> Conf {
@@ -47,8 +50,8 @@ async fn main() {
 
     #[allow(clippy::useless_conversion)]
     let mut renderer = renderer::macroquad::MacroquadRenderer::new(
-        ZoomType::from(ZOOM),
-        Complex::new(0.2.into(), 0.0.into()),
+        ZOOM,
+        Complex::new(FromF32::from_f32(0.2), FromF32::from_f32(0.0)),
         RESOLUTION,
     );
 

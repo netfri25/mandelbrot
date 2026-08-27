@@ -1,4 +1,3 @@
-use num_traits::NumOps;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, PartialOrd)]
@@ -55,7 +54,11 @@ macro_rules! impl_binop {
     ) => {
         impl<T> $name<Self> for Complex<T>
         where
-            T: Clone + NumOps + Neg<Output = T>,
+            T: Clone + Neg<Output = T>,
+            T: Add<T, Output = T>,
+            T: Sub<T, Output = T>,
+            T: Mul<T, Output = T>,
+            T: Div<T, Output = T>,
         {
             type Output = Self;
 

@@ -2,6 +2,7 @@ use std::ops::{Add, Div, Mul};
 
 use rayon::prelude::*;
 
+use crate::from_f32::FromF32;
 use crate::types::{Dimensions, Pos, Size};
 
 use super::Producer;
@@ -25,7 +26,7 @@ impl<'a, T> ThreadedProducer<'a, T> {
 
 impl<'a, T> Producer<T> for ThreadedProducer<'a, T>
 where
-    T: From<f32> + Send + Sync + Clone,
+    T: FromF32 + Send + Sync + Clone,
     T: Add<T, Output = T>,
     T: Mul<T, Output = T>,
     T: Div<T, Output = T>,
@@ -47,15 +48,15 @@ where
                 let section_h = section_h + (section_row < section_h_rem) as usize;
 
                 let start = Pos {
-                    x: T::from(section_offset_x as f32) / T::from(dims.w as f32) * size.w.clone()
+                    x: T::from_f32(section_offset_x as f32) / T::from_f32(dims.w as f32) * size.w.clone()
                         + start.x.clone(),
-                    y: T::from(section_offset_y as f32) / T::from(dims.h as f32) * size.h.clone()
+                    y: T::from_f32(section_offset_y as f32) / T::from_f32(dims.h as f32) * size.h.clone()
                         + start.y.clone(),
                 };
 
                 let size = Size {
-                    w: T::from(section_w as f32) / T::from(dims.w as f32) * size.w.clone(),
-                    h: T::from(section_h as f32) / T::from(dims.h as f32) * size.h.clone(),
+                    w: T::from_f32(section_w as f32) / T::from_f32(dims.w as f32) * size.w.clone(),
+                    h: T::from_f32(section_h as f32) / T::from_f32(dims.h as f32) * size.h.clone(),
                 };
 
                 let dims = Dimensions {
