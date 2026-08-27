@@ -1,3 +1,5 @@
+#![feature(portable_simd)]
+
 use macroquad::prelude::*;
 
 pub use crate::complex::Complex;
@@ -9,7 +11,7 @@ mod complex;
 mod exp2;
 mod fast_float;
 mod from_f32;
-mod producer;
+pub mod producer;
 mod renderer;
 mod types;
 
@@ -18,12 +20,13 @@ pub type Posit = fast_posit::Posit<64, 2, i64>;
 // change this to use a different type
 type NumberType = f64;
 
-const WIDTH: i32 = 500;
-const HEIGHT: i32 = 500;
+const WIDTH: i32 = 800;
+const HEIGHT: i32 = 800;
 const ZOOM: f32 = 1.;
-const RESOLUTION: f32 = 0.15;
+const RESOLUTION: f32 = 0.50;
 const ITERATIONS: u32 = 400;
 const THREADS: usize = 16;
+pub const SIMD_LANES: usize = 64;
 
 fn conf() -> Conf {
     Conf {
@@ -48,7 +51,8 @@ async fn main() {
         .build_global()
         .unwrap();
 
-    let producer = producer::naive::NaiveProducer::new(ITERATIONS);
+    // let producer = producer::naive::NaiveProducer::new(ITERATIONS);
+    let producer = producer::simd::SimdProducer::<SIMD_LANES>::new(ITERATIONS);
     let mut make_producer = move || Box::new(producer.clone()) as Box<dyn Producer<_> + Send>;
     let mut producer = producer::threaded::ThreadedProducer::new(THREADS, &mut make_producer);
     let mut producer = producer::timed::TimedProducer(&mut producer);

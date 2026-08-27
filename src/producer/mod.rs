@@ -1,6 +1,7 @@
 use crate::types::{Dimensions, Pos, Size};
 
 pub mod naive;
+pub mod simd;
 pub mod threaded;
 pub mod timed;
 
