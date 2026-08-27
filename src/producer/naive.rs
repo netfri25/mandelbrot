@@ -19,7 +19,7 @@ impl NaiveProducer {
 
 impl<T> Producer<T> for NaiveProducer
 where
-    T: From<f32> + Clone + PartialOrd + NumOps + Neg<Output = T>,
+    T: From<f32> + Clone + PartialOrd + NumOps + Neg<Output = T>
 {
     fn produce(&mut self, start: Pos<T>, size: Size<T>, dims: Dimensions) -> Vec<f32> {
         let max_iterations = self.max_iterations;
@@ -29,11 +29,13 @@ where
         range(start.y, step_y)
             .take(dims.h)
             .flat_map(move |y| {
-                range(start.x.clone(), step_x.clone()).take(dims.w).map(move |x| {
-                    let value = Complex::new(x, y.clone());
-                    (divergence_iteration(value, max_iterations) as f32)
-                        .algebraic_div(max_iterations as f32)
-                })
+                range(start.x.clone(), step_x.clone())
+                    .take(dims.w)
+                    .map(move |x| {
+                        let value = Complex::new(x, y.clone());
+                        (divergence_iteration(value, max_iterations) as f32)
+                            .algebraic_div(max_iterations as f32)
+                    })
             })
             .collect()
     }
@@ -67,7 +69,7 @@ where
 
 fn range<T>(start: T, step: T) -> std::iter::Successors<T, impl FnMut(&T) -> Option<T>>
 where
-    T: Add<T, Output = T> + Clone
+    T: Add<T, Output = T> + Clone,
 {
     std::iter::successors(Some(start), move |x| Some(x.clone() + step.clone()))
 }

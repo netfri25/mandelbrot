@@ -1,6 +1,9 @@
 use std::time::Instant;
 
+use flexfloat::flexfloat::FlexFloat;
+use flexfloat::prelude::DefaultBitArray;
 use macroquad::prelude::*;
+use num_bigfloat::BigFloat;
 use num_traits::FromPrimitive;
 
 use crate::complex::Complex;
@@ -16,8 +19,8 @@ mod types;
 const WIDTH: i32 = 1000;
 const HEIGHT: i32 = 1000;
 const ZOOM: f32 = 1.;
-const RESOLUTION: f32 = 0.1;
-const ITERATIONS: u32 = 1000;
+const RESOLUTION: f32 = 0.15;
+const ITERATIONS: u32 = 200;
 
 fn conf() -> Conf {
     Conf {
@@ -50,7 +53,7 @@ async fn main() {
         clear_background(BLACK);
 
         let start = Instant::now();
-        Renderer::<f64>::render(&mut renderer, &mut producer);
+        Renderer::<FastF64>::render(&mut renderer, &mut producer);
         let elapsed = start.elapsed();
         eprintln!(
             "render took {:.02?} ({:.02} max fps)",

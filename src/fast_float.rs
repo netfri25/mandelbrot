@@ -1,18 +1,8 @@
 use std::ops::{
-    Add,
-    AddAssign,
-    Div,
-    DivAssign,
-    Mul,
-    MulAssign,
-    Neg,
-    Rem,
-    RemAssign,
-    Sub,
-    SubAssign
+    Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign,
 };
 
-use num_traits::{Zero, One, Num};
+use num_traits::{Num, One, Zero};
 
 macro_rules! impl_binop {
     (
@@ -68,10 +58,7 @@ macro_rules! impl_all {
         impl Num for $target_name {
             type FromStrRadixErr = <$target_type as Num>::FromStrRadixErr;
 
-            fn from_str_radix(
-                str: &str,
-                radix: u32
-            ) -> Result<Self, Self::FromStrRadixErr> {
+            fn from_str_radix(str: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
                 <$target_type as Num>::from_str_radix(str, radix).map(Self)
             }
         }
@@ -94,7 +81,7 @@ macro_rules! impl_all {
 
         impl<T> From<T> for $target_name
         where
-            $target_type: From<T>
+            $target_type: From<T>,
         {
             fn from(value: T) -> Self {
                 Self($target_type::from(value))
@@ -158,7 +145,7 @@ macro_rules! impl_all {
             rem_assign,
             |lhs, rhs| Self(lhs.0.algebraic_rem(rhs.0))
         }
-    }
+    };
 }
 
 impl_all!(FastF32, f32);

@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use macroquad::prelude::*;
-use num_traits::NumAssignRef;
 
 use crate::complex::Complex;
 use crate::producer::Producer;
@@ -11,13 +11,13 @@ use super::Renderer;
 
 #[derive(Default)]
 pub struct MacroquadRenderer<T> {
-    zoom: f32,
+    zoom: f64,
     offset: Complex<T>,
     resolution: f32,
 }
 
 impl<T> MacroquadRenderer<T> {
-    pub fn new(zoom: f32, offset: Complex<T>, resolution: f32) -> Self {
+    pub fn new(zoom: f64, offset: Complex<T>, resolution: f32) -> Self {
         Self {
             zoom,
             offset,
@@ -30,39 +30,56 @@ fn fast_key(keycode: KeyCode) -> bool {
     is_key_pressed(keycode) || is_key_down(keycode) && is_key_down(KeyCode::LeftShift)
 }
 
-impl<T: From<f32> + NumAssignRef> MacroquadRenderer<T> {
+impl<T> MacroquadRenderer<T>
+where
+    T: From<f64> + Clone,
+    T: AddAssign<T>,
+    T: SubAssign<T>,
+{
     pub fn handle_input(&mut self) {
         let dt = get_frame_time();
-        let zoom_delta = 2.0 * dt;
+        let zoom_delta = 2.0 * dt as f64;
         let offset_delta = T::from(zoom_delta / 2.0 * self.zoom.exp());
 
         if fast_key(KeyCode::W) {
-            self.offset.im -= &offset_delta;
+            self.offset.im -= offset_delta.clone();
         }
 
         if fast_key(KeyCode::S) {
-            self.offset.im += &offset_delta;
+            self.offset.im += offset_delta.clone();
         }
 
         if fast_key(KeyCode::A) {
-            self.offset.re -= &offset_delta;
+            self.offset.re -= offset_delta.clone();
         }
 
         if fast_key(KeyCode::D) {
-            self.offset.re += &offset_delta;
+            self.offset.re += offset_delta.clone();
         }
 
         if fast_key(KeyCode::Minus) {
             self.zoom += zoom_delta;
+            eprintln!("new zoom: {}", self.zoom);
+            eprintln!("zoom exp: {}", self.zoom.exp());
         }
 
         if fast_key(KeyCode::Equal) {
             self.zoom -= zoom_delta;
+            eprintln!("new zoom: {}", self.zoom);
+            eprintln!("zoom exp: {}", self.zoom.exp());
         }
     }
 }
 
-impl<T: From<f32> + NumAssignRef + Clone> Renderer<T> for MacroquadRenderer<T> {
+// FIX: fix precision error on zoom
+impl<T> Renderer<T> for MacroquadRenderer<T>
+where
+    T: From<f64> + Clone,
+    T: Add<T, Output = T>,
+    T: Mul<T, Output = T>,
+    T: AddAssign<T>,
+    T: SubAssign<T>,
+{
     // TODO: make this work in non-square aspect ratios
     fn render(&mut self, producer: &mut dyn Producer<T>) {
         self.handle_input();
@@ -74,7 +91,10 @@ impl<T: From<f32> + NumAssignRef + Clone> Renderer<T> for MacroquadRenderer<T> {
             h: (self.resolution * screen_height()) as usize,
         };
 
-        let size = Size { w: zoom.clone(), h: zoom.clone() };
+        let size = Size {
+            w: zoom.clone(),
+            h: zoom.clone(),
+        };
 
         let base_offset: T = T::from(-0.5) * zoom;
         let top_left = Pos {

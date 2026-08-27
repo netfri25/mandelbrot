@@ -1,5 +1,5 @@
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use num_traits::NumOps;
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Complex<T> {
@@ -14,7 +14,7 @@ impl<T> Complex<T> {
 
     pub fn conj(self) -> Self
     where
-        T: Neg<Output = T>
+        T: Neg<Output = T>,
     {
         Self {
             im: -self.im,
@@ -24,7 +24,7 @@ impl<T> Complex<T> {
 
     pub fn abs_squared(&self) -> T
     where
-        T: Add<T, Output = T> + Mul<T, Output = T> + Clone
+        T: Add<T, Output = T> + Mul<T, Output = T> + Clone,
     {
         self.re.clone() * self.re.clone() + self.im.clone() * self.im.clone()
     }
