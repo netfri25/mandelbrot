@@ -65,7 +65,7 @@ where
     }
 }
 
-fn range<T>(start: T, step: T) -> impl Iterator<Item = T>
+fn range<T>(start: T, step: T) -> std::iter::Successors<T, impl FnMut(&T) -> Option<T>>
 where
     T: Add<T, Output = T> + Clone
 {
