@@ -13,7 +13,7 @@ impl<'a, T> Producer<T> for TimedProducer<'a, T> {
         let elapsed = time_start.elapsed();
 
         eprintln!(
-            "took {:.02?} ({:.02} max fps)",
+            "produce took {:>8.02?} ({:>7.02} max UPS)",
             elapsed,
             elapsed.as_secs_f64().recip()
         );
