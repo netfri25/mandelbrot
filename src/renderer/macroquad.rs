@@ -31,21 +31,29 @@ impl<T> MacroquadRenderer<T> {
     }
 }
 
-fn fast_key<T>(target: &mut T, keycode: KeyCode, delta: T, dt: f32) -> bool
+fn fast_key<T>(target: &mut T, keycode: KeyCode, delta: T, multiplier: f32, dt: f32) -> bool
 where
     T: FromF32,
     T: Mul<T, Output = T>,
     T: AddAssign<T>,
 {
-    if is_key_down(keycode) && is_key_down(KeyCode::LeftShift) {
-        *target += T::from_f32(dt) * delta;
-        true
-    } else if is_key_pressed(keycode) {
-        *target += delta;
-        true
-    } else {
-        false
+    match () {
+        _ if is_key_down(keycode) && is_key_down(KeyCode::LeftControl) => {
+            *target += T::from_f32(dt * multiplier) * delta;
+        }
+
+        _ if is_key_down(keycode) && is_key_down(KeyCode::LeftShift) => {
+            *target += T::from_f32(dt) * delta;
+        }
+
+        _ if is_key_pressed(keycode) => {
+            *target += delta;
+        }
+
+        _ => return false
     }
+
+    true
 }
 
 impl<T> MacroquadRenderer<T>
@@ -61,15 +69,45 @@ where
         let zoom_delta = 0.05;
         let offset_delta = T::from_f32(zoom_delta) * T::from_f32(self.zoom).exp2();
 
+        let offset_multiplier = 1.5;
+        let zoom_multiplier = 5.;
+
         let mut update = false;
-        update |= fast_key(&mut self.offset.im, KeyCode::W, -offset_delta.clone(), dt);
-        update |= fast_key(&mut self.offset.im, KeyCode::S, offset_delta.clone(), dt);
-        update |= fast_key(&mut self.offset.re, KeyCode::A, -offset_delta.clone(), dt);
-        update |= fast_key(&mut self.offset.re, KeyCode::D, offset_delta.clone(), dt);
+
+        // I hate this, but it works. will be very hard to extend
+        let mut refs = [&mut self.offset.im, &mut self.offset.re];
+        let keycodes = [
+            KeyCode::W,
+            KeyCode::S,
+            KeyCode::A,
+            KeyCode::D,
+        ];
+
+        for (i, keycode) in keycodes.into_iter().enumerate() {
+            let r = &mut refs[i / 2];
+
+            let delta = if i % 2 == 0 {
+                -offset_delta.clone()
+            } else {
+                offset_delta.clone()
+            };
+
+            update |= fast_key(*r, keycode, delta, offset_multiplier, dt);
+        }
 
         let prev_zoom = self.zoom;
-        update |= fast_key(&mut self.zoom, KeyCode::Equal, -zoom_delta, dt);
-        update |= fast_key(&mut self.zoom, KeyCode::Minus, zoom_delta, dt);
+
+        let keycodes = [KeyCode::Equal, KeyCode::Minus];
+
+        for (i, keycode) in keycodes.into_iter().enumerate() {
+            let delta = if i % 2 == 0 {
+                -zoom_delta
+            } else {
+                zoom_delta
+            };
+
+            update |= fast_key(&mut self.zoom, keycode, delta, zoom_multiplier, dt);
+        }
 
         if prev_zoom != self.zoom {
             eprintln!("new zoom: {:?}", self.zoom);
