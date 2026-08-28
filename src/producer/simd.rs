@@ -45,8 +45,6 @@ where
         let step_xs = Simd::splat(step_x);
         let chunk_step_xs = Simd::splat(chunk_step_x);
 
-        let full_mask = Mask::splat(true);
-
         let chunks_count = dims.w / LANES;
         let remainder = dims.w % LANES;
 
@@ -60,7 +58,7 @@ where
             // chunks
             let mut xs = Simd::splat(start.x) + step_xs * lane_offsets;
             for _ in 0..chunks_count {
-                let iterations = divergence_iteration_simd(xs, ys, max_iterations, full_mask);
+                let iterations = divergence_iteration_simd(xs, ys, max_iterations);
 
                 let normalized = iterations
                     .to_array()
@@ -77,10 +75,7 @@ where
 
                 let xs = Simd::splat(start_x) + step_xs * lane_offsets;
 
-                let bitmask = (1 << remainder) - 1;
-                let mask = Mask::from_bitmask(bitmask);
-
-                let iterations = divergence_iteration_simd(xs, ys, max_iterations, mask);
+                let iterations = divergence_iteration_simd(xs, ys, max_iterations);
 
                 let normalized = iterations
                     .to_array()
@@ -98,12 +93,12 @@ where
     }
 }
 
+// https://www.intel.com/content/www/us/en/developer/articles/technical/accelerating-compute-intensive-workloads-with-intel-avx-512-using-microsoft-visual-studio.html
 #[inline(always)]
 fn divergence_iteration_simd<T, const LANES: usize>(
     re: Simd<T, LANES>,
     im: Simd<T, LANES>,
     max_iterations: u32,
-    start_mask: Mask<<T as SimdElement>::Mask, LANES>,
 ) -> Simd<u32, LANES>
 where
     T: FromF32 + SimdElement,
@@ -125,23 +120,25 @@ where
     let mut x = x0;
     let mut y = y0;
 
-    let mut iteration = 0;
+    let mut iterations = Simd::splat(0);
 
-    let mut active = start_mask;
-    let mut iterations = Simd::splat(iteration);
-
-    while iteration < max_iterations && active.any() {
+    for _ in 0..max_iterations {
         let x2 = x * x;
         let y2 = y * y;
 
-        y = two * x * y + y0;
-        x = x2 - y2 + x0;
+        let new_y = x * y;
+        let new_x = x2 - y2;
 
-        active &= (x2 + y2).simd_le(bound);
+        let active = (x2 + y2).simd_le(bound);
+
+        y = two * new_y + y0;
+        x = new_x + x0;
+
+        if !active.any() {
+            break;
+        }
 
         iterations += active.cast::<i32>().select(one, zero);
-
-        iteration += 1;
     }
 
     iterations
