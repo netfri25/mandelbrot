@@ -110,7 +110,6 @@ where
     Simd<T, LANES>: Mul<Simd<T, LANES>, Output = Simd<T, LANES>>,
 {
     let bound = Simd::splat(T::from_f32(4.0));
-    let two = Simd::splat(T::from_f32(2.));
     let one = Simd::splat(1u32);
     let zero = Simd::splat(0u32);
 
@@ -131,7 +130,7 @@ where
 
         let active = (x2 + y2).simd_le(bound);
 
-        y = two * new_y + y0;
+        y = new_y + new_y + y0;
         x = new_x + x0;
 
         if !active.any() {
