@@ -14,28 +14,6 @@ impl Exp2 for f64 {
     }
 }
 
-impl<E, F> Exp2 for flexfloat::flexfloat::FlexFloat<E, F>
-where
-    E: flexfloat::BitArrayArith,
-    F: flexfloat::BitArrayArith,
-{
-    fn exp2(self) -> Self {
-        self.exp2()
-    }
-}
-
-impl<const N: usize> Exp2 for fastnum::decimal::Decimal<N> {
-    fn exp2(self) -> Self {
-        self.exp2()
-    }
-}
-
-impl Exp2 for rug::Float {
-    fn exp2(self) -> Self {
-        self.exp2()
-    }
-}
-
 impl<const N: u32, const ES: u32, const RS: u32, Int: fast_posit::Int> Exp2
     for fast_posit::Posit<N, ES, Int, RS>
 {
@@ -46,6 +24,7 @@ impl<const N: u32, const ES: u32, const RS: u32, Int: fast_posit::Int> Exp2
 
 use fast_posit::{Int, Posit, RoundFrom};
 
+// clanker generated this, since I wasn't able to find any proper generic implementations
 #[inline(always)]
 fn posit_exp2<const N: u32, const ES: u32, I: Int, const RS: u32>(
     x: Posit<N, ES, I, RS>,

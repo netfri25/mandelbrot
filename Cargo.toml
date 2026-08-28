@@ -5,8 +5,5 @@ edition = "2024"
 
 [dependencies]
 fast-posit = "0.2.0"
-fastnum = "0.7.5"
-flexfloat = "1.1.0"
 macroquad = "0.4.16"
 rayon = "1.12.0"
-rug = { version = "1.30.0", default-features = false, features = ["num-traits", "float"] }

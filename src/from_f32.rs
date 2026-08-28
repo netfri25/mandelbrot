@@ -14,12 +14,6 @@ impl FromF32 for f64 {
     }
 }
 
-impl FromF32 for rug::Float {
-    fn from_f32(value: f32) -> Self {
-        Self::with_val_64(256, value)
-    }
-}
-
 impl<const N: u32, const ES: u32, Int: fast_posit::Int, const RS: u32> FromF32
     for fast_posit::Posit<N, ES, Int, RS>
 {
