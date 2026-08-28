@@ -33,60 +33,69 @@ where
 {
     fn produce(&mut self, start: Pos<T>, size: Size<T>, dims: Dimensions) -> Vec<f32> {
         let max_iterations = self.max_iterations;
+
         let step_x = size.w / T::from_f32(dims.w as f32);
         let step_y = size.h / T::from_f32(dims.h as f32);
 
-        let mut output = Vec::with_capacity(dims.w * dims.h);
+        let lanes = T::from_f32(LANES as f32);
+        let chunk_step_x = step_x * lanes;
 
         let lane_offsets = Simd::from_array(std::array::from_fn(|i| T::from_f32(i as f32)));
-        let starts_xs = Simd::splat(start.x);
-        let steps_xs = Simd::splat(step_x);
 
-        for y in range(start.y, step_y).take(dims.h) {
+        let step_xs = Simd::splat(step_x);
+        let chunk_step_xs = Simd::splat(chunk_step_x);
+
+        let full_mask = Mask::splat(true);
+
+        let chunks_count = dims.w / LANES;
+        let remainder = dims.w % LANES;
+
+        let mut output = Vec::with_capacity(dims.w * dims.h);
+
+        let mut y = start.y;
+
+        for _ in 0..dims.h {
             let ys = Simd::splat(y);
 
             // chunks
-            let chunks_count = dims.w / LANES;
-            for chunk_index in 0..chunks_count {
-                let chunk_offsets = Simd::splat(T::from_f32((chunk_index * LANES) as f32));
-                let xs = starts_xs + steps_xs * (lane_offsets + chunk_offsets);
+            let mut xs = Simd::splat(start.x) + step_xs * lane_offsets;
+            for _ in 0..chunks_count {
+                let iterations = divergence_iteration_simd(xs, ys, max_iterations, full_mask);
 
-                let mask = Mask::from_bitmask(u64::MAX);
-                let result = divergence_iteration_simd(xs, ys, max_iterations, mask)
+                let normalized = iterations
                     .to_array()
                     .map(|value| value as f32 / max_iterations as f32);
 
-                output.extend(result);
+                output.extend(normalized);
+
+                xs += chunk_step_xs;
             }
 
             // remainder
-            let remainder_size = dims.w % LANES;
-            if remainder_size != 0 {
-                let start_x = start.x + step_x * T::from_f32((chunks_count * LANES) as f32);
-                let remainder: Vec<_> = range(start_x, step_x).take(remainder_size).collect();
+            if remainder != 0 {
+                let start_x = start.x + chunk_step_x * T::from_f32(chunks_count as f32);
 
-                let xs = Simd::load_or(&remainder, Simd::splat(T::from_f32(0.)));
-                let bitmask = (1 << remainder_size) - 1;
+                let xs = Simd::splat(start_x) + step_xs * lane_offsets;
+
+                let bitmask = (1 << remainder) - 1;
                 let mask = Mask::from_bitmask(bitmask);
-                let result = divergence_iteration_simd(xs, ys, max_iterations, mask)
+
+                let iterations = divergence_iteration_simd(xs, ys, max_iterations, mask);
+
+                let normalized = iterations
                     .to_array()
                     .into_iter()
-                    .take(remainder_size)
-                    .map(move |value| value as f32 / max_iterations as f32);
+                    .map(|value| value as f32 / max_iterations as f32)
+                    .take(remainder);
 
-                output.extend(result);
+                output.extend(normalized);
             }
+
+            y = y + step_y;
         }
 
         output
     }
-}
-
-fn range<T>(start: T, step: T) -> std::iter::Successors<T, impl FnMut(&T) -> Option<T>>
-where
-    T: Add<T, Output = T> + Clone,
-{
-    std::iter::successors(Some(start), move |x| Some(x.clone() + step.clone()))
 }
 
 #[inline(always)]
@@ -105,14 +114,18 @@ where
     Simd<T, LANES>: Sub<Simd<T, LANES>, Output = Simd<T, LANES>>,
     Simd<T, LANES>: Mul<Simd<T, LANES>, Output = Simd<T, LANES>>,
 {
+    let bound = Simd::splat(T::from_f32(4.0));
+    let two = Simd::splat(T::from_f32(2.));
+    let one = Simd::splat(1u32);
+    let zero = Simd::splat(0u32);
+
     let x0 = re;
     let y0 = im;
 
     let mut x = x0;
     let mut y = y0;
 
-    let bound = Simd::splat(T::from_f32(4.0));
-    let mut iteration = 1;
+    let mut iteration = 0;
 
     let mut active = start_mask;
     let mut iterations = Simd::splat(iteration);
@@ -121,13 +134,14 @@ where
         let x2 = x * x;
         let y2 = y * y;
 
-        y = Simd::splat(T::from_f32(2.)) * x * y + y0;
+        y = two * x * y + y0;
         x = x2 - y2 + x0;
 
         active &= (x2 + y2).simd_le(bound);
 
+        iterations += active.cast::<i32>().select(one, zero);
+
         iteration += 1;
-        iterations += active.cast::<i32>().select(Simd::splat(1), Simd::splat(0));
     }
 
     iterations
