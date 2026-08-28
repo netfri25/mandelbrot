@@ -189,19 +189,21 @@ where
 
         let size = screen_height() as f32 / 25.;
         let line_delta = 0.7;
+        let text_color = BROWN;
+
         draw_text(
             format!("x: {:?}", self.offset.re),
             0.,
             1. * line_delta * size,
             size,
-            WHITE,
+            text_color,
         );
         draw_text(
             format!("y: {:?}", self.offset.im),
             0.,
             2. * line_delta * size,
             size,
-            WHITE,
+            text_color,
         );
 
         draw_text(
@@ -209,7 +211,7 @@ where
             0.,
             3. * line_delta * size,
             size,
-            WHITE,
+            text_color,
         );
 
         draw_text(
@@ -217,7 +219,7 @@ where
             0.,
             4. * line_delta * size,
             size,
-            WHITE,
+            text_color,
         );
 
         draw_text(
@@ -225,7 +227,7 @@ where
             0.,
             5. * line_delta * size,
             size,
-            WHITE,
+            text_color,
         );
 
         draw_text(
@@ -236,7 +238,7 @@ where
             0.,
             6. * line_delta * size,
             size,
-            WHITE,
+            text_color,
         );
     }
 }
