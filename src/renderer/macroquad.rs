@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 use std::ops::{Add, AddAssign, Mul, Neg, SubAssign};
+use std::time::{Duration, Instant};
 
 use macroquad::prelude::*;
 
@@ -16,6 +17,7 @@ pub struct MacroquadRenderer<T> {
     offset: Complex<T>,
     resolution: f32,
     frame: Option<Texture2D>,
+    last_produce_duration: Duration,
 }
 
 impl<T> MacroquadRenderer<T> {
@@ -25,7 +27,52 @@ impl<T> MacroquadRenderer<T> {
             offset,
             resolution,
             frame: None,
+            last_produce_duration: Duration::default(),
         }
+    }
+
+    fn update_frame(&mut self, dims: Dimensions, producer: &mut dyn Producer<T>)
+    where
+        T: FromF32 + Exp2 + Clone,
+        T: Add<T, Output = T>,
+        T: Mul<T, Output = T>,
+    {
+        let (ratio_w, ratio_h) = if dims.w > dims.h {
+            (1., dims.h as f32 / dims.w as f32)
+        } else {
+            (dims.w as f32 / dims.h as f32, 1.)
+        };
+
+        let zoom_w = T::from_f32(self.zoom).exp2() * T::from_f32(ratio_w);
+        let zoom_h = T::from_f32(self.zoom).exp2() * T::from_f32(ratio_h);
+
+        let size = Size {
+            w: zoom_w.clone(),
+            h: zoom_h.clone(),
+        };
+
+        let base_offset_x: T = T::from_f32(-0.5) * zoom_w;
+        let base_offset_y: T = T::from_f32(-0.5) * zoom_h;
+        let top_left = Pos {
+            x: base_offset_x + self.offset.re.clone(),
+            y: base_offset_y + self.offset.im.clone(),
+        };
+
+        let produce_start = Instant::now();
+        let values = producer.produce(top_left, size, dims);
+        self.last_produce_duration = produce_start.elapsed();
+
+        let minimum = values.iter().fold(0.9, |a, b| b.min(a));
+
+        let mut image = Image::gen_image_color(dims.w as u16, dims.h as u16, Color::default());
+
+        let colors: Vec<_> = values
+            .into_iter()
+            .map(|pixel| select_color(pixel, minimum))
+            .collect();
+
+        image.update(&colors);
+        self.frame = Some(Texture2D::from_image(&image));
     }
 }
 
@@ -118,32 +165,7 @@ where
         };
 
         if update || self.frame.is_none() {
-            let zoom: T = T::from_f32(self.zoom).exp2();
-
-            let size = Size {
-                w: zoom.clone(),
-                h: zoom.clone(),
-            };
-
-            let base_offset: T = T::from_f32(-0.5) * zoom;
-            let top_left = Pos {
-                x: base_offset.clone() + self.offset.re.clone(),
-                y: base_offset.clone() + self.offset.im.clone(),
-            };
-
-            let values = producer.produce(top_left, size, dims);
-
-            let minimum = values.iter().fold(0.9, |a, b| b.min(a));
-
-            let mut image = Image::gen_image_color(dims.w as u16, dims.h as u16, Color::default());
-
-            let colors: Vec<_> = values
-                .into_iter()
-                .map(|pixel| select_color(pixel, minimum))
-                .collect();
-
-            image.update(&colors);
-            self.frame = Some(Texture2D::from_image(&image));
+            self.update_frame(dims, producer)
         }
 
         let frame = self
@@ -183,11 +205,11 @@ where
         );
 
         draw_text(
-            format!("new zoom: {:?}", self.zoom),
+            format!("zoom:     {:?}", self.zoom),
             0.,
             3. * line_delta * size,
             size,
-            WHITE
+            WHITE,
         );
 
         draw_text(
@@ -195,7 +217,26 @@ where
             0.,
             4. * line_delta * size,
             size,
-            WHITE
+            WHITE,
+        );
+
+        draw_text(
+            format!("{:>9.02?}", self.last_produce_duration),
+            0.,
+            5. * line_delta * size,
+            size,
+            WHITE,
+        );
+
+        draw_text(
+            format!(
+                "{:>7.02}UPS",
+                self.last_produce_duration.as_secs_f32().recip()
+            ),
+            0.,
+            6. * line_delta * size,
+            size,
+            WHITE,
         );
     }
 }
