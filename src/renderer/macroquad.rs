@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::ops::{Add, AddAssign, Mul, Neg, SubAssign};
 
@@ -12,12 +11,11 @@ use crate::types::{Dimensions, Pos, Size};
 
 use super::Renderer;
 
-#[derive(Default)]
 pub struct MacroquadRenderer<T> {
     zoom: f32,
     offset: Complex<T>,
     resolution: f32,
-    frame: Vec<f32>,
+    frame: Option<Texture2D>,
 }
 
 impl<T> MacroquadRenderer<T> {
@@ -26,7 +24,7 @@ impl<T> MacroquadRenderer<T> {
             zoom,
             offset,
             resolution,
-            frame: Default::default(),
+            frame: None,
         }
     }
 }
@@ -50,7 +48,7 @@ where
             *target += delta;
         }
 
-        _ => return false
+        _ => return false,
     }
 
     true
@@ -76,12 +74,7 @@ where
 
         // I hate this, but it works. will be very hard to extend
         let mut refs = [&mut self.offset.im, &mut self.offset.re];
-        let keycodes = [
-            KeyCode::W,
-            KeyCode::S,
-            KeyCode::A,
-            KeyCode::D,
-        ];
+        let keycodes = [KeyCode::W, KeyCode::S, KeyCode::A, KeyCode::D];
 
         for (i, keycode) in keycodes.into_iter().enumerate() {
             let r = &mut refs[i / 2];
@@ -95,23 +88,11 @@ where
             update |= fast_key(*r, keycode, delta, offset_multiplier, dt);
         }
 
-        let prev_zoom = self.zoom;
-
         let keycodes = [KeyCode::Equal, KeyCode::Minus];
 
         for (i, keycode) in keycodes.into_iter().enumerate() {
-            let delta = if i % 2 == 0 {
-                -zoom_delta
-            } else {
-                zoom_delta
-            };
-
+            let delta = if i % 2 == 0 { -zoom_delta } else { zoom_delta };
             update |= fast_key(&mut self.zoom, keycode, delta, zoom_multiplier, dt);
-        }
-
-        if prev_zoom != self.zoom {
-            eprintln!("new zoom: {:?}", self.zoom);
-            eprintln!("zoom exp: {:?}", T::from_f32(self.zoom).exp2());
         }
 
         update
@@ -136,7 +117,7 @@ where
             h: (self.resolution * screen_height()) as usize,
         };
 
-        if self.frame.is_empty() || update {
+        if update || self.frame.is_none() {
             let zoom: T = T::from_f32(self.zoom).exp2();
 
             let size = Size {
@@ -150,27 +131,39 @@ where
                 y: base_offset.clone() + self.offset.im.clone(),
             };
 
-            self.frame = producer.produce(top_left, size, dims);
+            let values = producer.produce(top_left, size, dims);
+
+            let minimum = values.iter().fold(0.9, |a, b| b.min(a));
+
+            let mut image = Image::gen_image_color(dims.w as u16, dims.h as u16, Color::default());
+
+            let colors: Vec<_> = values
+                .into_iter()
+                .map(|pixel| select_color(pixel, minimum))
+                .collect();
+
+            image.update(&colors);
+            self.frame = Some(Texture2D::from_image(&image));
         }
 
-        let pixel_size = self.resolution.recip();
-
-        let minimum = self
+        let frame = self
             .frame
-            .iter()
-            .copied()
-            .min_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))
-            .unwrap_or_default()
-            .min(0.9);
+            .as_ref()
+            .expect("frame should be initialized here");
 
-        for (y, pixel_row) in self.frame.chunks_exact(dims.w).enumerate() {
-            for (x, pixel) in pixel_row.iter().enumerate() {
-                let x = pixel_size * x as f32;
-                let y = pixel_size * y as f32;
-                let color = select_color(*pixel, minimum);
-                draw_rectangle(x, y, pixel_size, pixel_size, color);
-            }
-        }
+        draw_texture_ex(
+            frame,
+            0.,
+            0.,
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(vec2(
+                    dims.w as f32 / self.resolution,
+                    dims.h as f32 / self.resolution,
+                )),
+                ..Default::default()
+            },
+        );
 
         let size = screen_height() as f32 / 25.;
         let line_delta = 0.7;
@@ -187,6 +180,22 @@ where
             2. * line_delta * size,
             size,
             WHITE,
+        );
+
+        draw_text(
+            format!("new zoom: {:?}", self.zoom),
+            0.,
+            3. * line_delta * size,
+            size,
+            WHITE
+        );
+
+        draw_text(
+            format!("zoom exp: {:?}", T::from_f32(self.zoom).exp2()),
+            0.,
+            4. * line_delta * size,
+            size,
+            WHITE
         );
     }
 }
