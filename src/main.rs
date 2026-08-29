@@ -30,7 +30,7 @@ pub const SIMD_LANES: usize = 64;
 
 fn conf() -> Conf {
     Conf {
-        window_title: "almond".into(),
+        window_title: "mandelbrot".into(),
         window_width: WIDTH,
         window_height: HEIGHT,
         high_dpi: false,
