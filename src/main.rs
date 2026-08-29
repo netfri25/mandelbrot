@@ -4,7 +4,6 @@ use macroquad::prelude::*;
 
 pub use crate::complex::Complex;
 pub use crate::fast_float::{FastF32, FastF64};
-use crate::producer::Producer;
 use crate::renderer::Renderer;
 
 mod complex;
@@ -53,15 +52,15 @@ async fn main() {
 
     // let producer = producer::naive::NaiveProducer::new(ITERATIONS);
     let producer = producer::simd::SimdProducer::<SIMD_LANES>::new(ITERATIONS);
-    let mut make_producer = move || Box::new(producer.clone()) as Box<dyn Producer<_> + Send>;
-    let mut producer = producer::threaded::ThreadedProducer::new(THREADS, &mut make_producer);
+    let make_producer = move || producer.clone();
+    let mut producer = producer::threaded::ThreadedProducer::new(THREADS, make_producer);
 
     let mut renderer =
         renderer::macroquad::MacroquadRenderer::new(ZOOM, Default::default(), RESOLUTION);
 
     loop {
         clear_background(BLACK);
-        Renderer::<NumberType>::render(&mut renderer, &mut producer);
+        Renderer::<_, NumberType>::render(&mut renderer, &mut producer);
         next_frame().await
     }
 }

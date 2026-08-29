@@ -33,7 +33,7 @@ impl<T> MacroquadRenderer<T> {
         }
     }
 
-    fn update_frame(&mut self, dims: Dimensions, producer: &mut dyn Producer<T>)
+    fn update_frame(&mut self, dims: Dimensions, producer: &mut (impl Producer<T> + ?Sized))
     where
         T: FromF32 + Exp2 + Clone,
         T: Add<T, Output = T>,
@@ -209,8 +209,9 @@ where
     }
 }
 
-impl<T> Renderer<T> for MacroquadRenderer<T>
+impl<P, T> Renderer<P, T> for MacroquadRenderer<T>
 where
+    P: Producer<T> + ?Sized,
     T: FromF32 + Clone + Exp2 + Debug,
     T: Add<T, Output = T>,
     T: Mul<T, Output = T>,
@@ -218,7 +219,7 @@ where
     T: AddAssign<T>,
     T: SubAssign<T>,
 {
-    fn render(&mut self, producer: &mut dyn Producer<T>) {
+    fn render(&mut self, producer: &mut P) {
         let update = self.handle_input();
 
         let dims = Dimensions {

@@ -7,16 +7,19 @@ use crate::types::{Dimensions, Pos, Size};
 
 use super::Producer;
 
-pub struct ThreadedProducer<'a, T> {
+pub struct ThreadedProducer<F, P>
+where
+    F: FnMut() -> P,
+{
     threads: usize,
-    make_producer: &'a mut dyn FnMut() -> Box<dyn Producer<T> + Send>,
+    make_producer: F,
 }
 
-impl<'a, T> ThreadedProducer<'a, T> {
-    pub fn new(
-        threads: usize,
-        make_producer: &'a mut dyn FnMut() -> Box<dyn Producer<T> + Send>,
-    ) -> Self {
+impl<F, P> ThreadedProducer<F, P>
+where
+    F: FnMut() -> P,
+{
+    pub fn new(threads: usize, make_producer: F) -> Self {
         Self {
             threads,
             make_producer,
@@ -24,8 +27,10 @@ impl<'a, T> ThreadedProducer<'a, T> {
     }
 }
 
-impl<'a, T> Producer<T> for ThreadedProducer<'a, T>
+impl<F, P, T> Producer<T> for ThreadedProducer<F, P>
 where
+    F: FnMut() -> P,
+    P: Producer<T> + Send,
     T: FromF32 + Send + Sync + Clone,
     T: Add<T, Output = T>,
     T: Mul<T, Output = T>,
