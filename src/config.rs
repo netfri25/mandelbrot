@@ -2,7 +2,9 @@ use std::pin::Pin;
 
 use clap::{Parser, ValueEnum};
 
+use crate::fast_float::{FastF32, FastF64};
 use crate::producer::Producer;
+use crate::producer::threaded::ThreadedProducer;
 
 #[derive(Parser)]
 pub struct Config {
@@ -32,17 +34,6 @@ pub struct Config {
     pub iterations: u32,
 }
 
-macro_rules! create_producer_with_type {
-    ($number_type:ty, $config:expr) => {{
-        crate::producer::threaded::ThreadedProducer::new($config.threads as usize, move || {
-            match $config.simd {
-                0 => $config.create_naive_producer::<$number_type>(),
-                lanes => $config.create_simd_producer::<$number_type>(lanes),
-            }
-        })
-    }};
-}
-
 macro_rules! create_macroquad_program_body {
     ($producer:expr, $resolution:expr) => {{
         let mut producer = $producer;
@@ -64,6 +55,15 @@ macro_rules! create_macroquad_program_body {
     }};
 }
 
+fn make_threaded<F, P, T>(threads: u32, make_producer: F) -> Box<dyn Producer<T> + Send>
+where
+    ThreadedProducer<F>: Producer<T>,
+    F: FnMut() -> P + Send + 'static,
+    P: Producer<T> + Send,
+{
+    Box::new(ThreadedProducer::new(threads as usize, make_producer))
+}
+
 impl Config {
     pub fn create_macroquad_program(self) -> Pin<Box<dyn Future<Output = ()>>> {
         rayon::ThreadPoolBuilder::new()
@@ -75,20 +75,39 @@ impl Config {
 
         match self.number_type {
             NumberType::F64 => {
-                let producer = create_producer_with_type!(f64, self);
+                let producer = make_threaded(self.threads, move || match self.simd {
+                    0 => self.create_naive_producer::<f64>(),
+                    lanes => self.create_simd_producer::<f64>(lanes),
+                });
                 create_macroquad_program_body!(producer, resolution)
             }
 
             NumberType::F32 => {
-                let producer = create_producer_with_type!(f32, self);
+                let producer = make_threaded(self.threads, move || match self.simd {
+                    0 => self.create_naive_producer::<f32>(),
+                    lanes => self.create_simd_producer::<f32>(lanes),
+                });
+                create_macroquad_program_body!(producer, resolution)
+            }
+
+            NumberType::FastF64 => {
+                let producer = make_threaded(self.threads, move || {
+                    self.create_naive_producer::<FastF64>()
+                });
+                create_macroquad_program_body!(producer, resolution)
+            }
+
+            NumberType::FastF32 => {
+                let producer = make_threaded(self.threads, move || {
+                    self.create_naive_producer::<FastF32>()
+                });
                 create_macroquad_program_body!(producer, resolution)
             }
 
             NumberType::Posit => {
-                let producer = crate::producer::threaded::ThreadedProducer::new(
-                    self.threads as usize,
-                    move || self.create_naive_producer::<fast_posit::p64>(),
-                );
+                let producer = make_threaded(self.threads, move || {
+                    self.create_naive_producer::<fast_posit::p64>()
+                });
 
                 create_macroquad_program_body!(producer, resolution)
             }
@@ -387,6 +406,8 @@ pub enum NumberType {
     #[default]
     F64,
     F32,
+    FastF64,
+    FastF32,
     Posit,
 }
 

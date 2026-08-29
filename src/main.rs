@@ -2,8 +2,6 @@
 
 use clap::Parser;
 
-pub use crate::fast_float::{FastF32, FastF64};
-
 mod complex;
 mod config;
 mod exp2;
