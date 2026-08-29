@@ -64,7 +64,7 @@ macro_rules! impl_all {
 
         impl Exp2 for $target_name {
             fn exp2(self) -> Self {
-                Self(self.0.exp())
+                Self(self.0.exp2())
             }
         }
 
