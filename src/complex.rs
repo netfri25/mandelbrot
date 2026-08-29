@@ -20,13 +20,6 @@ impl<T> Complex<T> {
             ..self
         }
     }
-
-    pub fn abs_squared(&self) -> T
-    where
-        T: Add<T, Output = T> + Mul<T, Output = T> + Clone,
-    {
-        self.re.clone() * self.re.clone() + self.im.clone() * self.im.clone()
-    }
 }
 
 impl<T> From<(T, T)> for Complex<T> {
