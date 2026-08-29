@@ -7,15 +7,12 @@ use crate::types::{Dimensions, Pos, Size};
 
 use super::Producer;
 
-pub struct ThreadedProducer<F, P>
-where
-    F: FnMut() -> P,
-{
+pub struct ThreadedProducer<F> {
     threads: usize,
     make_producer: F,
 }
 
-impl<F, P> ThreadedProducer<F, P>
+impl<F, P> ThreadedProducer<F>
 where
     F: FnMut() -> P,
 {
@@ -27,7 +24,7 @@ where
     }
 }
 
-impl<F, P, T> Producer<T> for ThreadedProducer<F, P>
+impl<F, P, T> Producer<T> for ThreadedProducer<F>
 where
     F: FnMut() -> P,
     P: Producer<T> + Send,
