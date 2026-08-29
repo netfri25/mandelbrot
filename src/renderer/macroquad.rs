@@ -109,7 +109,7 @@ where
     T: AddAssign<T>,
     T: SubAssign<T>,
 {
-    pub fn handle_input(&mut self) -> bool {
+    fn handle_input(&mut self) -> bool {
         let dt = get_frame_time() * 20.;
         let zoom_delta = 0.05;
         let offset_delta = T::from_f32(zoom_delta) * T::from_f32(self.zoom).exp2();
