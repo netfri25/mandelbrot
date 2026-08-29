@@ -27,7 +27,7 @@ const ITERATIONS: u32 = 400;
 const THREADS: usize = 16;
 pub const SIMD_LANES: usize = 64;
 
-fn conf() -> Conf {
+fn window_conf() -> Conf {
     Conf {
         window_title: "mandelbrot".into(),
         window_width: WIDTH,
@@ -43,8 +43,7 @@ fn conf() -> Conf {
     }
 }
 
-#[macroquad::main(conf)]
-async fn main() {
+fn main() {
     rayon::ThreadPoolBuilder::new()
         .num_threads(THREADS)
         .build_global()
@@ -58,9 +57,13 @@ async fn main() {
     let mut renderer =
         renderer::macroquad::MacroquadRenderer::new(ZOOM, Default::default(), RESOLUTION);
 
-    loop {
-        clear_background(BLACK);
-        Renderer::<_, NumberType>::render(&mut renderer, &mut producer);
-        next_frame().await
-    }
+    let program = async move {
+        loop {
+            clear_background(BLACK);
+            Renderer::<_, NumberType>::render(&mut renderer, &mut producer);
+            next_frame().await
+        }
+    };
+
+    macroquad::Window::from_config(window_conf(), program);
 }
