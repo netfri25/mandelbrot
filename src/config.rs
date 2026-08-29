@@ -25,8 +25,12 @@ pub struct Config {
     #[arg(long, short, value_parser = WindowSize::parse, default_value = "800x600")]
     pub window_size: WindowSize,
 
+    /// allow window to be resized
+    #[arg(long, short = 'r')]
+    pub window_resizable: bool,
+
     /// rendering resolution
-    #[arg(short, long, value_parser = Resolution::parse, default_value = "0.5")]
+    #[arg(long, value_parser = Resolution::parse, default_value = "0.5")]
     pub resolution: Resolution,
 
     /// amount of iterations to use for evaluation
@@ -119,7 +123,7 @@ impl Config {
             window_title: "mandelbrot".into(),
             window_width: self.window_size.width as i32,
             window_height: self.window_size.height as i32,
-            window_resizable: false,
+            window_resizable: self.window_resizable,
             platform: macroquad::miniquad::conf::Platform {
                 linux_backend: macroquad::miniquad::conf::LinuxBackend::WaylandWithX11Fallback,
                 ..Default::default()
