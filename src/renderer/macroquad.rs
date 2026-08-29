@@ -18,6 +18,7 @@ pub struct MacroquadRenderer<T> {
     resolution: f32,
     frame: Option<Texture2D>,
     last_produce_duration: Duration,
+    should_show_info: bool,
 }
 
 impl<T> MacroquadRenderer<T> {
@@ -28,6 +29,7 @@ impl<T> MacroquadRenderer<T> {
             resolution,
             frame: None,
             last_produce_duration: Duration::default(),
+            should_show_info: false,
         }
     }
 
@@ -109,6 +111,7 @@ where
     T: AddAssign<T>,
     T: SubAssign<T>,
 {
+    // returns `true` if the frame should be updated
     fn handle_input(&mut self) -> bool {
         let dt = get_frame_time() * 20.;
         let zoom_delta = 0.05;
@@ -142,50 +145,14 @@ where
             update |= fast_key(&mut self.zoom, keycode, delta, zoom_multiplier, dt);
         }
 
-        update
-    }
-}
-
-impl<T> Renderer<T> for MacroquadRenderer<T>
-where
-    T: FromF32 + Clone + Exp2 + Debug,
-    T: Add<T, Output = T>,
-    T: Mul<T, Output = T>,
-    T: Neg<Output = T>,
-    T: AddAssign<T>,
-    T: SubAssign<T>,
-{
-    fn render(&mut self, producer: &mut dyn Producer<T>) {
-        let update = self.handle_input();
-
-        let dims = Dimensions {
-            w: (self.resolution * screen_width()) as usize,
-            h: (self.resolution * screen_height()) as usize,
-        };
-
-        if update || self.frame.is_none() {
-            self.update_frame(dims, producer)
+        if is_key_pressed(KeyCode::I) {
+            self.should_show_info = !self.should_show_info;
         }
 
-        let frame = self
-            .frame
-            .as_ref()
-            .expect("frame should be initialized here");
+        update
+    }
 
-        draw_texture_ex(
-            frame,
-            0.,
-            0.,
-            WHITE,
-            DrawTextureParams {
-                dest_size: Some(vec2(
-                    dims.w as f32 / self.resolution,
-                    dims.h as f32 / self.resolution,
-                )),
-                ..Default::default()
-            },
-        );
-
+    fn show_info(&self) {
         let size = screen_height() as f32 / 25.;
         let line_delta = 0.7;
         let text_color = BROWN;
@@ -239,6 +206,52 @@ where
             size,
             text_color,
         );
+    }
+}
+
+impl<T> Renderer<T> for MacroquadRenderer<T>
+where
+    T: FromF32 + Clone + Exp2 + Debug,
+    T: Add<T, Output = T>,
+    T: Mul<T, Output = T>,
+    T: Neg<Output = T>,
+    T: AddAssign<T>,
+    T: SubAssign<T>,
+{
+    fn render(&mut self, producer: &mut dyn Producer<T>) {
+        let update = self.handle_input();
+
+        let dims = Dimensions {
+            w: (self.resolution * screen_width()) as usize,
+            h: (self.resolution * screen_height()) as usize,
+        };
+
+        if update || self.frame.is_none() {
+            self.update_frame(dims, producer)
+        }
+
+        let frame = self
+            .frame
+            .as_ref()
+            .expect("frame should be initialized here");
+
+        draw_texture_ex(
+            frame,
+            0.,
+            0.,
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(vec2(
+                    dims.w as f32 / self.resolution,
+                    dims.h as f32 / self.resolution,
+                )),
+                ..Default::default()
+            },
+        );
+
+        if self.should_show_info {
+            self.show_info()
+        }
     }
 }
 
