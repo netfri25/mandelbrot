@@ -6,5 +6,4 @@ simple, efficient, generic, and well designed [Mandelbrot set](https://en.wikipe
 ### Features
  - Multithreaded
  - SIMD support, using Rust's Portable SIMD module ([std::simd](https://doc.rust-lang.org/stable/std/simd/index.html))
- - Generic over everything - from the type of the number to the renderer
-
+ - Generic over everything - the type of the number used for calculations, the renderer, the method for producing values, etc.
