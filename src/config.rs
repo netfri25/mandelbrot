@@ -46,7 +46,7 @@ macro_rules! create_macroquad_program_body {
         let program = async move {
             loop {
                 ::macroquad::prelude::clear_background(::macroquad::prelude::BLACK);
-                $crate::renderer::Renderer::<_, _>::render(&mut renderer, &mut producer);
+                $crate::renderer::Renderer::render(&mut renderer, &mut producer);
                 ::macroquad::prelude::next_frame().await
             }
         };
@@ -404,10 +404,15 @@ impl Config {
 #[derive(Default, Clone, Copy, ValueEnum)]
 pub enum NumberType {
     #[default]
+    /// double precision floating point value. supports SIMD.
     F64,
+    /// single precision floating point value. supports SIMD.
     F32,
+    /// double precision floating point value, assuming associativity.
     FastF64,
+    /// single precision floating point value, assuming associativity.
     FastF32,
+    /// posit (Type III Unum)
     Posit,
 }
 
