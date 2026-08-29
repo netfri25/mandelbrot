@@ -155,7 +155,6 @@ where
     T: AddAssign<T>,
     T: SubAssign<T>,
 {
-    // TODO: make this work in non-square aspect ratios
     fn render(&mut self, producer: &mut dyn Producer<T>) {
         let update = self.handle_input();
 
