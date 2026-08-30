@@ -47,11 +47,8 @@ impl Config {
 
         let resolution = self.resolution.0;
         let mut producer = self.create_producer();
-        let mut renderer = crate::renderer::macroquad::MacroquadRenderer::new(
-            1.,
-            Default::default(),
-            resolution,
-        );
+        let mut renderer =
+            crate::renderer::macroquad::MacroquadRenderer::new(1., Default::default(), resolution);
 
         let program = async move {
             loop {
