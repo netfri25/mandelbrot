@@ -4,6 +4,7 @@ use std::ops::{Add, Div, Mul, Neg, Sub};
 use super::Producer;
 
 use crate::from_f64::FromF64;
+use crate::high_precision::HighPrecision;
 use crate::types::{Dimensions, Pos, Size};
 
 #[derive(Clone)]
@@ -32,15 +33,15 @@ where
 {
     fn produce(&mut self, start: Pos, size: Size, dims: Dimensions) -> Vec<f32> {
         let max_iterations = self.max_iterations;
-        let step_x = size.w / dims.w as f64;
-        let step_y = size.h / dims.h as f64;
+        let step_x = size.w / HighPrecision::from_f64(dims.w as f64);
+        let step_y = size.h / HighPrecision::from_f64(dims.h as f64);
 
         range(start.y, step_y)
             .take(dims.h as usize)
             .flat_map(move |y| {
                 range(start.x, step_x).take(dims.w as usize).map(move |x| {
-                    let x = T::from_f64(x);
-                    let y = T::from_f64(y);
+                    let x = T::from_f64(x.to_f64());
+                    let y = T::from_f64(y.to_f64());
                     (divergence_iteration(x, y, max_iterations) as f32)
                         .algebraic_div(max_iterations as f32)
                 })

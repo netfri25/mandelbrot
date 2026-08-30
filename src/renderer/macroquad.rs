@@ -3,7 +3,9 @@ use std::time::{Duration, Instant};
 
 use macroquad::prelude::*;
 
+use crate::exp2::Exp2;
 use crate::from_f64::FromF64;
+use crate::high_precision::HighPrecision;
 use crate::producer::Producer;
 use crate::types::{Dimensions, Pos, Size};
 
@@ -42,12 +44,12 @@ impl MacroquadRenderer {
         let zoom_h = zoom_exp * ratio_h;
 
         let size = Size {
-            w: zoom_w,
-            h: zoom_h,
+            w: HighPrecision::from_f64(zoom_w),
+            h: HighPrecision::from_f64(zoom_h),
         };
 
-        let base_offset_x = -zoom_w / 2.;
-        let base_offset_y = -zoom_h / 2.;
+        let base_offset_x = HighPrecision::from_f64(-zoom_w / 2.);
+        let base_offset_y = HighPrecision::from_f64(-zoom_h / 2.);
         let top_left = Pos {
             x: base_offset_x + self.offset.x,
             y: base_offset_y + self.offset.y,
@@ -101,7 +103,8 @@ impl MacroquadRenderer {
     fn handle_input(&mut self) -> bool {
         let dt = get_frame_time() * 20.;
         let zoom_delta = 0.05;
-        let offset_delta = zoom_delta * self.zoom.exp2();
+        let offset_delta =
+            HighPrecision::from_f64(zoom_delta) * HighPrecision::from_f64(self.zoom).exp2();
 
         let offset_multiplier = 1.5;
         let zoom_multiplier = 5.;

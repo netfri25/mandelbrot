@@ -1,5 +1,7 @@
 use rayon::prelude::*;
 
+use crate::from_f64::FromF64;
+use crate::high_precision::HighPrecision;
 use crate::types::{Dimensions, Pos, Size};
 
 use super::Producer;
@@ -43,17 +45,17 @@ where
                 let section_w = dims.w;
                 let section_h = section_h + (section_row < section_h_rem) as u64;
 
-                let section_offset_x = section_offset_x as f64;
-                let section_offset_y = section_offset_y as f64;
+                let section_offset_x = HighPrecision::from_f64(section_offset_x as f64);
+                let section_offset_y = HighPrecision::from_f64(section_offset_y as f64);
 
                 let start = Pos {
-                    x: section_offset_x / dims.w as f64 * size.w + start.x,
-                    y: section_offset_y / dims.h as f64 * size.h + start.y,
+                    x: section_offset_x / HighPrecision::from_f64(dims.w as f64) * size.w + start.x,
+                    y: section_offset_y / HighPrecision::from_f64(dims.h as f64) * size.h + start.y,
                 };
 
                 let size = Size {
-                    w: section_w as f64 / dims.w as f64 * size.w,
-                    h: section_h as f64 / dims.h as f64 * size.h,
+                    w: HighPrecision::from_f64(section_w as f64 / dims.w as f64) * size.w,
+                    h: HighPrecision::from_f64(section_h as f64 / dims.h as f64) * size.h,
                 };
 
                 let dims = Dimensions {

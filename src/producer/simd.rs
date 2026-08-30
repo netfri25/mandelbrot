@@ -39,8 +39,8 @@ where
     fn produce(&mut self, start: Pos, size: Size, dims: Dimensions) -> Vec<f32> {
         let max_iterations = self.max_iterations;
 
-        let step_x = T::from_f64(size.w / dims.w as f64);
-        let step_y = T::from_f64(size.h / dims.h as f64);
+        let step_x = T::from_f64(size.w.to_f64() / dims.w as f64);
+        let step_y = T::from_f64(size.h.to_f64() / dims.h as f64);
 
         let lanes = T::from_f64(LANES as f64);
         let chunk_step_x = step_x * lanes;
@@ -55,8 +55,8 @@ where
 
         let mut output = Vec::with_capacity((dims.w * dims.h) as usize);
 
-        let start_x = T::from_f64(start.x);
-        let start_y = T::from_f64(start.y);
+        let start_x = T::from_f64(start.x.to_f64());
+        let start_y = T::from_f64(start.y.to_f64());
 
         let mut y = start_y;
 
