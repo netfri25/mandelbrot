@@ -1,8 +1,9 @@
-// TODO: to support future numbers with higher precision, switch these types to use a higher
-//       precision type that implements `FromF64` and `Exp2`.
+// TODO:
+//  to support future numbers with higher precision, switch these types to use a higher precision
+//  type that implements `FromF64` and `Exp2`.
 //
-//       ideally, it will should also support `Copy`, but just `Clone` is also fine, but it will
-//       require a bit of refactoring.
+//  ideally, it should also support `Copy`, but just `Clone` is also fine, but it will require a bit
+//  of refactoring.
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Pos {
