@@ -1,28 +1,25 @@
-use std::fmt::Debug;
-use std::ops::{Add, AddAssign, Mul, Neg, SubAssign};
+use std::ops::{AddAssign, Mul};
 use std::time::{Duration, Instant};
 
 use macroquad::prelude::*;
 
-use crate::complex::Complex;
-use crate::exp2::Exp2;
-use crate::from_f32::FromF32;
+use crate::from_f64::FromF64;
 use crate::producer::Producer;
 use crate::types::{Dimensions, Pos, Size};
 
 use super::Renderer;
 
-pub struct MacroquadRenderer<T> {
-    zoom: f32,
-    offset: Complex<T>,
+pub struct MacroquadRenderer {
+    zoom: f64,
+    offset: Pos,
     resolution: f32,
     frame: Option<Texture2D>,
     last_produce_duration: Duration,
     should_show_info: bool,
 }
 
-impl<T> MacroquadRenderer<T> {
-    pub fn new(zoom: f32, offset: Complex<T>, resolution: f32) -> Self {
+impl MacroquadRenderer {
+    pub fn new(zoom: f64, offset: Pos, resolution: f32) -> Self {
         Self {
             zoom,
             offset,
@@ -33,31 +30,27 @@ impl<T> MacroquadRenderer<T> {
         }
     }
 
-    fn update_frame(&mut self, dims: Dimensions, producer: &mut (impl Producer<T> + ?Sized))
-    where
-        T: FromF32 + Exp2 + Clone,
-        T: Add<T, Output = T>,
-        T: Mul<T, Output = T>,
-    {
+    fn update_frame(&mut self, dims: Dimensions, producer: &mut (impl Producer + ?Sized)) {
         let (ratio_w, ratio_h) = if dims.w > dims.h {
-            (1., dims.h as f32 / dims.w as f32)
+            (1., dims.h as f64 / dims.w as f64)
         } else {
-            (dims.w as f32 / dims.h as f32, 1.)
+            (dims.w as f64 / dims.h as f64, 1.)
         };
 
-        let zoom_w = T::from_f32(self.zoom).exp2() * T::from_f32(ratio_w);
-        let zoom_h = T::from_f32(self.zoom).exp2() * T::from_f32(ratio_h);
+        let zoom_exp = self.zoom.exp2();
+        let zoom_w = zoom_exp * ratio_w;
+        let zoom_h = zoom_exp * ratio_h;
 
         let size = Size {
-            w: zoom_w.clone(),
-            h: zoom_h.clone(),
+            w: zoom_w,
+            h: zoom_h,
         };
 
-        let base_offset_x: T = T::from_f32(-0.5) * zoom_w;
-        let base_offset_y: T = T::from_f32(-0.5) * zoom_h;
+        let base_offset_x = -zoom_w / 2.;
+        let base_offset_y = -zoom_h / 2.;
         let top_left = Pos {
-            x: base_offset_x + self.offset.re.clone(),
-            y: base_offset_y + self.offset.im.clone(),
+            x: base_offset_x + self.offset.x,
+            y: base_offset_y + self.offset.y,
         };
 
         let produce_start = Instant::now();
@@ -80,17 +73,17 @@ impl<T> MacroquadRenderer<T> {
 
 fn fast_key<T>(target: &mut T, keycode: KeyCode, delta: T, multiplier: f32, dt: f32) -> bool
 where
-    T: FromF32,
+    T: FromF64,
     T: Mul<T, Output = T>,
     T: AddAssign<T>,
 {
     match () {
         _ if is_key_down(keycode) && is_key_down(KeyCode::LeftControl) => {
-            *target += T::from_f32(dt * multiplier) * delta;
+            *target += T::from_f64((dt * multiplier) as f64) * delta;
         }
 
         _ if is_key_down(keycode) && is_key_down(KeyCode::LeftShift) => {
-            *target += T::from_f32(dt) * delta;
+            *target += T::from_f64(dt as f64) * delta;
         }
 
         _ if is_key_pressed(keycode) => {
@@ -103,19 +96,12 @@ where
     true
 }
 
-impl<T> MacroquadRenderer<T>
-where
-    T: FromF32 + Clone + Exp2 + Debug,
-    T: Mul<T, Output = T>,
-    T: Neg<Output = T>,
-    T: AddAssign<T>,
-    T: SubAssign<T>,
-{
+impl MacroquadRenderer {
     // returns `true` if the frame should be updated
     fn handle_input(&mut self) -> bool {
         let dt = get_frame_time() * 20.;
         let zoom_delta = 0.05;
-        let offset_delta = T::from_f32(zoom_delta) * T::from_f32(self.zoom).exp2();
+        let offset_delta = zoom_delta * self.zoom.exp2();
 
         let offset_multiplier = 1.5;
         let zoom_multiplier = 5.;
@@ -123,16 +109,16 @@ where
         let mut update = false;
 
         // I hate this, but it works. will be very hard to extend
-        let mut refs = [&mut self.offset.im, &mut self.offset.re];
+        let mut refs = [&mut self.offset.y, &mut self.offset.x];
         let keycodes = [KeyCode::W, KeyCode::S, KeyCode::A, KeyCode::D];
 
         for (i, keycode) in keycodes.into_iter().enumerate() {
             let r = &mut refs[i / 2];
 
             let delta = if i % 2 == 0 {
-                -offset_delta.clone()
+                -offset_delta
             } else {
-                offset_delta.clone()
+                offset_delta
             };
 
             update |= fast_key(*r, keycode, delta, offset_multiplier, dt);
@@ -158,14 +144,14 @@ where
         let text_color = BROWN;
 
         draw_text(
-            format!("x: {:?}", self.offset.re),
+            format!("x: {:?}", self.offset.x),
             0.,
             1. * line_delta * size,
             size,
             text_color,
         );
         draw_text(
-            format!("y: {:?}", self.offset.im),
+            format!("y: {:?}", self.offset.y),
             0.,
             2. * line_delta * size,
             size,
@@ -181,7 +167,7 @@ where
         );
 
         draw_text(
-            format!("zoom exp: {:?}", T::from_f32(self.zoom).exp2()),
+            format!("zoom exp: {:?}", self.zoom.exp2()),
             0.,
             4. * line_delta * size,
             size,
@@ -209,22 +195,16 @@ where
     }
 }
 
-impl<P, T> Renderer<P, T> for MacroquadRenderer<T>
+impl<P> Renderer<P> for MacroquadRenderer
 where
-    P: Producer<T> + ?Sized,
-    T: FromF32 + Clone + Exp2 + Debug,
-    T: Add<T, Output = T>,
-    T: Mul<T, Output = T>,
-    T: Neg<Output = T>,
-    T: AddAssign<T>,
-    T: SubAssign<T>,
+    P: Producer + ?Sized,
 {
     fn render(&mut self, producer: &mut P) {
         let update = self.handle_input();
 
         let dims = Dimensions {
-            w: (self.resolution * screen_width()) as usize,
-            h: (self.resolution * screen_height()) as usize,
+            w: (self.resolution * screen_width()) as u64,
+            h: (self.resolution * screen_height()) as u64,
         };
 
         if update || self.frame.is_none() {

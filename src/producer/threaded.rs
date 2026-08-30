@@ -1,8 +1,5 @@
-use std::ops::{Add, Div, Mul};
-
 use rayon::prelude::*;
 
-use crate::from_f32::FromF32;
 use crate::types::{Dimensions, Pos, Size};
 
 use super::Producer;
@@ -24,18 +21,14 @@ where
     }
 }
 
-impl<F, P, T> Producer<T> for ThreadedProducer<F>
+impl<F, P> Producer for ThreadedProducer<F>
 where
     F: FnMut() -> P,
-    P: Producer<T> + Send,
-    T: FromF32 + Send + Sync + Clone,
-    T: Add<T, Output = T>,
-    T: Mul<T, Output = T>,
-    T: Div<T, Output = T>,
+    P: Producer + Send,
 {
-    fn produce(&mut self, start: Pos<T>, size: Size<T>, dims: Dimensions) -> Vec<f32> {
-        let section_h = dims.h / self.threads;
-        let section_h_rem = dims.h % self.threads;
+    fn produce(&mut self, start: Pos, size: Size, dims: Dimensions) -> Vec<f32> {
+        let section_h = dims.h / self.threads as u64;
+        let section_h_rem = dims.h % self.threads as u64;
 
         let producers: Vec<_> = (0..self.threads).map(|_| (self.make_producer)()).collect();
 
@@ -43,24 +36,24 @@ where
             .into_par_iter()
             .enumerate()
             .flat_map(move |(section_row, mut producer)| {
+                let section_row = section_row as u64;
                 let section_offset_x = 0;
                 let section_offset_y = section_h * section_row + section_row.min(section_h_rem);
 
                 let section_w = dims.w;
-                let section_h = section_h + (section_row < section_h_rem) as usize;
+                let section_h = section_h + (section_row < section_h_rem) as u64;
+
+                let section_offset_x = section_offset_x as f64;
+                let section_offset_y = section_offset_y as f64;
 
                 let start = Pos {
-                    x: T::from_f32(section_offset_x as f32) / T::from_f32(dims.w as f32)
-                        * size.w.clone()
-                        + start.x.clone(),
-                    y: T::from_f32(section_offset_y as f32) / T::from_f32(dims.h as f32)
-                        * size.h.clone()
-                        + start.y.clone(),
+                    x: section_offset_x / dims.w as f64 * size.w + start.x,
+                    y: section_offset_y / dims.h as f64 * size.h + start.y,
                 };
 
                 let size = Size {
-                    w: T::from_f32(section_w as f32) / T::from_f32(dims.w as f32) * size.w.clone(),
-                    h: T::from_f32(section_h as f32) / T::from_f32(dims.h as f32) * size.h.clone(),
+                    w: section_w as f64 / dims.w as f64 * size.w,
+                    h: section_h as f64 / dims.h as f64 * size.h,
                 };
 
                 let dims = Dimensions {

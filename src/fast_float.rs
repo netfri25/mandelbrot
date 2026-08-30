@@ -3,7 +3,7 @@ use std::ops::{
 };
 
 use crate::exp2::Exp2;
-use crate::from_f32::FromF32;
+use crate::from_f64::FromF64;
 
 macro_rules! impl_binop {
     (
@@ -56,9 +56,9 @@ macro_rules! impl_all {
         #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
         pub struct $target_name(pub $target_type);
 
-        impl FromF32 for $target_name {
-            fn from_f32(value: f32) -> Self {
-                Self::from(value)
+        impl FromF64 for $target_name {
+            fn from_f64(value: f64) -> Self {
+                Self(value as $target_type)
             }
         }
 

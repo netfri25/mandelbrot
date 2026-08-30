@@ -1,3 +1,4 @@
+#[allow(unused)]
 pub trait Exp2 {
     fn exp2(self) -> Self;
 }

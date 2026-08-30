@@ -59,13 +59,17 @@ macro_rules! create_macroquad_program_body {
     }};
 }
 
-fn make_threaded<F, P, T>(threads: u32, make_producer: F) -> Box<dyn Producer<T> + Send>
+fn make_threaded<F, P>(threads: u32, mut make_producer: F) -> Box<dyn Producer + Send>
 where
-    ThreadedProducer<F>: Producer<T>,
+    ThreadedProducer<F>: Producer,
     F: FnMut() -> P + Send + 'static,
-    P: Producer<T> + Send,
+    P: Producer + Send + 'static,
 {
-    Box::new(ThreadedProducer::new(threads as usize, make_producer))
+    if threads == 1 {
+        Box::new(make_producer())
+    } else {
+        Box::new(ThreadedProducer::new(threads as usize, make_producer))
+    }
 }
 
 impl Config {
@@ -132,272 +136,273 @@ impl Config {
         }
     }
 
-    fn create_naive_producer<T>(&self) -> Box<dyn Producer<T> + Send>
+    fn create_naive_producer<T>(&self) -> Box<dyn Producer + Send>
     where
-        crate::producer::naive::NaiveProducer: Producer<T>,
+        crate::producer::naive::NaiveProducer<T>: Producer + Send + 'static,
     {
         Box::new(crate::producer::naive::NaiveProducer::new(self.iterations))
     }
 
     // NOTE: this can probably be done with code generation, but a using `g<c-a>` in vim is enough
-    fn create_simd_producer<T>(&self, lanes: u8) -> Box<dyn Producer<T> + Send>
+    fn create_simd_producer<T>(&self, lanes: u8) -> Box<dyn Producer + Send>
     where
-        crate::producer::simd::SimdProducer<1>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<2>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<3>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<4>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<5>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<6>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<7>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<8>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<9>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<10>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<11>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<12>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<13>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<14>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<15>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<16>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<17>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<18>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<19>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<20>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<21>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<22>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<23>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<24>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<25>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<26>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<27>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<28>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<29>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<30>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<31>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<32>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<33>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<34>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<35>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<36>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<37>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<38>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<39>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<40>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<41>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<42>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<43>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<44>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<45>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<46>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<47>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<48>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<49>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<50>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<51>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<52>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<53>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<54>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<55>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<56>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<57>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<58>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<59>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<60>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<61>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<62>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<63>: crate::producer::Producer<T>,
-        crate::producer::simd::SimdProducer<64>: crate::producer::Producer<T>,
+        T: Send + 'static,
+        crate::producer::simd::SimdProducer<T, 1>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 2>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 3>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 4>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 5>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 6>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 7>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 8>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 9>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 10>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 11>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 12>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 13>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 14>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 15>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 16>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 17>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 18>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 19>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 20>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 21>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 22>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 23>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 24>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 25>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 26>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 27>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 28>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 29>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 30>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 31>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 32>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 33>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 34>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 35>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 36>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 37>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 38>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 39>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 40>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 41>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 42>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 43>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 44>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 45>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 46>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 47>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 48>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 49>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 50>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 51>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 52>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 53>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 54>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 55>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 56>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 57>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 58>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 59>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 60>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 61>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 62>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 63>: crate::producer::Producer,
+        crate::producer::simd::SimdProducer<T, 64>: crate::producer::Producer,
     {
         match lanes {
-            1 => Box::new(crate::producer::simd::SimdProducer::<1>::new(
+            1 => Box::new(crate::producer::simd::SimdProducer::<T, 1>::new(
                 self.iterations,
             )),
-            2 => Box::new(crate::producer::simd::SimdProducer::<2>::new(
+            2 => Box::new(crate::producer::simd::SimdProducer::<T, 2>::new(
                 self.iterations,
             )),
-            3 => Box::new(crate::producer::simd::SimdProducer::<3>::new(
+            3 => Box::new(crate::producer::simd::SimdProducer::<T, 3>::new(
                 self.iterations,
             )),
-            4 => Box::new(crate::producer::simd::SimdProducer::<4>::new(
+            4 => Box::new(crate::producer::simd::SimdProducer::<T, 4>::new(
                 self.iterations,
             )),
-            5 => Box::new(crate::producer::simd::SimdProducer::<5>::new(
+            5 => Box::new(crate::producer::simd::SimdProducer::<T, 5>::new(
                 self.iterations,
             )),
-            6 => Box::new(crate::producer::simd::SimdProducer::<6>::new(
+            6 => Box::new(crate::producer::simd::SimdProducer::<T, 6>::new(
                 self.iterations,
             )),
-            7 => Box::new(crate::producer::simd::SimdProducer::<7>::new(
+            7 => Box::new(crate::producer::simd::SimdProducer::<T, 7>::new(
                 self.iterations,
             )),
-            8 => Box::new(crate::producer::simd::SimdProducer::<8>::new(
+            8 => Box::new(crate::producer::simd::SimdProducer::<T, 8>::new(
                 self.iterations,
             )),
-            9 => Box::new(crate::producer::simd::SimdProducer::<9>::new(
+            9 => Box::new(crate::producer::simd::SimdProducer::<T, 9>::new(
                 self.iterations,
             )),
-            10 => Box::new(crate::producer::simd::SimdProducer::<10>::new(
+            10 => Box::new(crate::producer::simd::SimdProducer::<T, 10>::new(
                 self.iterations,
             )),
-            11 => Box::new(crate::producer::simd::SimdProducer::<11>::new(
+            11 => Box::new(crate::producer::simd::SimdProducer::<T, 11>::new(
                 self.iterations,
             )),
-            12 => Box::new(crate::producer::simd::SimdProducer::<12>::new(
+            12 => Box::new(crate::producer::simd::SimdProducer::<T, 12>::new(
                 self.iterations,
             )),
-            13 => Box::new(crate::producer::simd::SimdProducer::<13>::new(
+            13 => Box::new(crate::producer::simd::SimdProducer::<T, 13>::new(
                 self.iterations,
             )),
-            14 => Box::new(crate::producer::simd::SimdProducer::<14>::new(
+            14 => Box::new(crate::producer::simd::SimdProducer::<T, 14>::new(
                 self.iterations,
             )),
-            15 => Box::new(crate::producer::simd::SimdProducer::<15>::new(
+            15 => Box::new(crate::producer::simd::SimdProducer::<T, 15>::new(
                 self.iterations,
             )),
-            16 => Box::new(crate::producer::simd::SimdProducer::<16>::new(
+            16 => Box::new(crate::producer::simd::SimdProducer::<T, 16>::new(
                 self.iterations,
             )),
-            17 => Box::new(crate::producer::simd::SimdProducer::<17>::new(
+            17 => Box::new(crate::producer::simd::SimdProducer::<T, 17>::new(
                 self.iterations,
             )),
-            18 => Box::new(crate::producer::simd::SimdProducer::<18>::new(
+            18 => Box::new(crate::producer::simd::SimdProducer::<T, 18>::new(
                 self.iterations,
             )),
-            19 => Box::new(crate::producer::simd::SimdProducer::<19>::new(
+            19 => Box::new(crate::producer::simd::SimdProducer::<T, 19>::new(
                 self.iterations,
             )),
-            20 => Box::new(crate::producer::simd::SimdProducer::<20>::new(
+            20 => Box::new(crate::producer::simd::SimdProducer::<T, 20>::new(
                 self.iterations,
             )),
-            21 => Box::new(crate::producer::simd::SimdProducer::<21>::new(
+            21 => Box::new(crate::producer::simd::SimdProducer::<T, 21>::new(
                 self.iterations,
             )),
-            22 => Box::new(crate::producer::simd::SimdProducer::<22>::new(
+            22 => Box::new(crate::producer::simd::SimdProducer::<T, 22>::new(
                 self.iterations,
             )),
-            23 => Box::new(crate::producer::simd::SimdProducer::<23>::new(
+            23 => Box::new(crate::producer::simd::SimdProducer::<T, 23>::new(
                 self.iterations,
             )),
-            24 => Box::new(crate::producer::simd::SimdProducer::<24>::new(
+            24 => Box::new(crate::producer::simd::SimdProducer::<T, 24>::new(
                 self.iterations,
             )),
-            25 => Box::new(crate::producer::simd::SimdProducer::<25>::new(
+            25 => Box::new(crate::producer::simd::SimdProducer::<T, 25>::new(
                 self.iterations,
             )),
-            26 => Box::new(crate::producer::simd::SimdProducer::<26>::new(
+            26 => Box::new(crate::producer::simd::SimdProducer::<T, 26>::new(
                 self.iterations,
             )),
-            27 => Box::new(crate::producer::simd::SimdProducer::<27>::new(
+            27 => Box::new(crate::producer::simd::SimdProducer::<T, 27>::new(
                 self.iterations,
             )),
-            28 => Box::new(crate::producer::simd::SimdProducer::<28>::new(
+            28 => Box::new(crate::producer::simd::SimdProducer::<T, 28>::new(
                 self.iterations,
             )),
-            29 => Box::new(crate::producer::simd::SimdProducer::<29>::new(
+            29 => Box::new(crate::producer::simd::SimdProducer::<T, 29>::new(
                 self.iterations,
             )),
-            30 => Box::new(crate::producer::simd::SimdProducer::<30>::new(
+            30 => Box::new(crate::producer::simd::SimdProducer::<T, 30>::new(
                 self.iterations,
             )),
-            31 => Box::new(crate::producer::simd::SimdProducer::<31>::new(
+            31 => Box::new(crate::producer::simd::SimdProducer::<T, 31>::new(
                 self.iterations,
             )),
-            32 => Box::new(crate::producer::simd::SimdProducer::<32>::new(
+            32 => Box::new(crate::producer::simd::SimdProducer::<T, 32>::new(
                 self.iterations,
             )),
-            33 => Box::new(crate::producer::simd::SimdProducer::<33>::new(
+            33 => Box::new(crate::producer::simd::SimdProducer::<T, 33>::new(
                 self.iterations,
             )),
-            34 => Box::new(crate::producer::simd::SimdProducer::<34>::new(
+            34 => Box::new(crate::producer::simd::SimdProducer::<T, 34>::new(
                 self.iterations,
             )),
-            35 => Box::new(crate::producer::simd::SimdProducer::<35>::new(
+            35 => Box::new(crate::producer::simd::SimdProducer::<T, 35>::new(
                 self.iterations,
             )),
-            36 => Box::new(crate::producer::simd::SimdProducer::<36>::new(
+            36 => Box::new(crate::producer::simd::SimdProducer::<T, 36>::new(
                 self.iterations,
             )),
-            37 => Box::new(crate::producer::simd::SimdProducer::<37>::new(
+            37 => Box::new(crate::producer::simd::SimdProducer::<T, 37>::new(
                 self.iterations,
             )),
-            38 => Box::new(crate::producer::simd::SimdProducer::<38>::new(
+            38 => Box::new(crate::producer::simd::SimdProducer::<T, 38>::new(
                 self.iterations,
             )),
-            39 => Box::new(crate::producer::simd::SimdProducer::<39>::new(
+            39 => Box::new(crate::producer::simd::SimdProducer::<T, 39>::new(
                 self.iterations,
             )),
-            40 => Box::new(crate::producer::simd::SimdProducer::<40>::new(
+            40 => Box::new(crate::producer::simd::SimdProducer::<T, 40>::new(
                 self.iterations,
             )),
-            41 => Box::new(crate::producer::simd::SimdProducer::<41>::new(
+            41 => Box::new(crate::producer::simd::SimdProducer::<T, 41>::new(
                 self.iterations,
             )),
-            42 => Box::new(crate::producer::simd::SimdProducer::<42>::new(
+            42 => Box::new(crate::producer::simd::SimdProducer::<T, 42>::new(
                 self.iterations,
             )),
-            43 => Box::new(crate::producer::simd::SimdProducer::<43>::new(
+            43 => Box::new(crate::producer::simd::SimdProducer::<T, 43>::new(
                 self.iterations,
             )),
-            44 => Box::new(crate::producer::simd::SimdProducer::<44>::new(
+            44 => Box::new(crate::producer::simd::SimdProducer::<T, 44>::new(
                 self.iterations,
             )),
-            45 => Box::new(crate::producer::simd::SimdProducer::<45>::new(
+            45 => Box::new(crate::producer::simd::SimdProducer::<T, 45>::new(
                 self.iterations,
             )),
-            46 => Box::new(crate::producer::simd::SimdProducer::<46>::new(
+            46 => Box::new(crate::producer::simd::SimdProducer::<T, 46>::new(
                 self.iterations,
             )),
-            47 => Box::new(crate::producer::simd::SimdProducer::<47>::new(
+            47 => Box::new(crate::producer::simd::SimdProducer::<T, 47>::new(
                 self.iterations,
             )),
-            48 => Box::new(crate::producer::simd::SimdProducer::<48>::new(
+            48 => Box::new(crate::producer::simd::SimdProducer::<T, 48>::new(
                 self.iterations,
             )),
-            49 => Box::new(crate::producer::simd::SimdProducer::<49>::new(
+            49 => Box::new(crate::producer::simd::SimdProducer::<T, 49>::new(
                 self.iterations,
             )),
-            50 => Box::new(crate::producer::simd::SimdProducer::<50>::new(
+            50 => Box::new(crate::producer::simd::SimdProducer::<T, 50>::new(
                 self.iterations,
             )),
-            51 => Box::new(crate::producer::simd::SimdProducer::<51>::new(
+            51 => Box::new(crate::producer::simd::SimdProducer::<T, 51>::new(
                 self.iterations,
             )),
-            52 => Box::new(crate::producer::simd::SimdProducer::<52>::new(
+            52 => Box::new(crate::producer::simd::SimdProducer::<T, 52>::new(
                 self.iterations,
             )),
-            53 => Box::new(crate::producer::simd::SimdProducer::<53>::new(
+            53 => Box::new(crate::producer::simd::SimdProducer::<T, 53>::new(
                 self.iterations,
             )),
-            54 => Box::new(crate::producer::simd::SimdProducer::<54>::new(
+            54 => Box::new(crate::producer::simd::SimdProducer::<T, 54>::new(
                 self.iterations,
             )),
-            55 => Box::new(crate::producer::simd::SimdProducer::<55>::new(
+            55 => Box::new(crate::producer::simd::SimdProducer::<T, 55>::new(
                 self.iterations,
             )),
-            56 => Box::new(crate::producer::simd::SimdProducer::<56>::new(
+            56 => Box::new(crate::producer::simd::SimdProducer::<T, 56>::new(
                 self.iterations,
             )),
-            57 => Box::new(crate::producer::simd::SimdProducer::<57>::new(
+            57 => Box::new(crate::producer::simd::SimdProducer::<T, 57>::new(
                 self.iterations,
             )),
-            58 => Box::new(crate::producer::simd::SimdProducer::<58>::new(
+            58 => Box::new(crate::producer::simd::SimdProducer::<T, 58>::new(
                 self.iterations,
             )),
-            59 => Box::new(crate::producer::simd::SimdProducer::<59>::new(
+            59 => Box::new(crate::producer::simd::SimdProducer::<T, 59>::new(
                 self.iterations,
             )),
-            60 => Box::new(crate::producer::simd::SimdProducer::<60>::new(
+            60 => Box::new(crate::producer::simd::SimdProducer::<T, 60>::new(
                 self.iterations,
             )),
-            61 => Box::new(crate::producer::simd::SimdProducer::<61>::new(
+            61 => Box::new(crate::producer::simd::SimdProducer::<T, 61>::new(
                 self.iterations,
             )),
-            62 => Box::new(crate::producer::simd::SimdProducer::<62>::new(
+            62 => Box::new(crate::producer::simd::SimdProducer::<T, 62>::new(
                 self.iterations,
             )),
-            63 => Box::new(crate::producer::simd::SimdProducer::<63>::new(
+            63 => Box::new(crate::producer::simd::SimdProducer::<T, 63>::new(
                 self.iterations,
             )),
-            64 => Box::new(crate::producer::simd::SimdProducer::<64>::new(
+            64 => Box::new(crate::producer::simd::SimdProducer::<T, 64>::new(
                 self.iterations,
             )),
             _ => unreachable!("clap ensures that lanes should be between 0 and 64"),
