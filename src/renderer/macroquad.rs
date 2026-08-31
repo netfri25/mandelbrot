@@ -1,9 +1,7 @@
-use std::ops::{AddAssign, Mul};
 use std::time::{Duration, Instant};
 
 use macroquad::prelude::*;
 
-use crate::exp2::Exp2;
 use crate::from_f64::FromF64;
 use crate::high_precision::HighPrecision;
 use crate::producer::Producer;
@@ -12,7 +10,7 @@ use crate::types::{Dimensions, Pos, Size};
 use super::Renderer;
 
 pub struct MacroquadRenderer {
-    zoom: f64,
+    zoom: HighPrecision,
     offset: Pos,
     resolution: f32,
     frame: Option<Texture2D>,
@@ -22,9 +20,9 @@ pub struct MacroquadRenderer {
 }
 
 impl MacroquadRenderer {
-    pub fn new(zoom: f64, offset: Pos, resolution: f32) -> Self {
+    pub fn new(offset: Pos, resolution: f32) -> Self {
         Self {
-            zoom,
+            zoom: HighPrecision::from(3.5),
             offset,
             resolution,
             frame: None,
@@ -34,7 +32,7 @@ impl MacroquadRenderer {
         }
     }
 
-    fn update_frame(&mut self, dims: Dimensions, producer: &mut (impl Producer + ?Sized)) {
+    fn get_size(&mut self, dims: Dimensions) -> Size {
         let dims_w = HighPrecision::from_f64(dims.w as f64);
         let dims_h = HighPrecision::from_f64(dims.h as f64);
         let one = HighPrecision::from_f64(1.);
@@ -44,24 +42,28 @@ impl MacroquadRenderer {
             [dims_w / dims_h, one]
         };
 
-        let zoom_exp = HighPrecision::from_f64(self.zoom).exp2();
-        let zoom_w = zoom_exp * ratio_w;
-        let zoom_h = zoom_exp * ratio_h;
+        let zoom_w = self.zoom * ratio_w;
+        let zoom_h = self.zoom * ratio_h;
 
-        let size = Size {
+        self.last_size = Size {
             w: zoom_w,
             h: zoom_h,
         };
 
+        self.last_size.clone()
+    }
+
+    fn update_frame(&mut self, dims: Dimensions, producer: &mut (impl Producer + ?Sized)) {
+        let size = self.get_size(dims);
+
         let neg_half = HighPrecision::from_f64(-0.5);
-        let base_offset_x = neg_half * zoom_w;
-        let base_offset_y = neg_half * zoom_h;
+        let base_offset_x = neg_half * size.w;
+        let base_offset_y = neg_half * size.h;
         let top_left = Pos {
             x: base_offset_x + self.offset.x,
             y: base_offset_y + self.offset.y,
         };
 
-        self.last_size = size.clone();
         let produce_start = Instant::now();
         let values = producer.produce(top_left, size, dims);
         self.last_produce_duration = produce_start.elapsed();
@@ -78,68 +80,13 @@ impl MacroquadRenderer {
         image.update(&colors);
         self.frame = Some(Texture2D::from_image(&image));
     }
-}
 
-fn fast_key<T>(target: &mut T, keycode: KeyCode, delta: T, multiplier: f32, dt: f32) -> bool
-where
-    T: FromF64,
-    T: Mul<T, Output = T>,
-    T: AddAssign<T>,
-{
-    match () {
-        _ if is_key_down(keycode) && is_key_down(KeyCode::LeftControl) => {
-            *target += T::from_f64((dt * multiplier) as f64) * delta;
-        }
-
-        _ if is_key_down(keycode) && is_key_down(KeyCode::LeftShift) => {
-            *target += T::from_f64(dt as f64) * delta;
-        }
-
-        _ if is_key_pressed(keycode) => {
-            *target += delta;
-        }
-
-        _ => return false,
-    }
-
-    true
-}
-
-impl MacroquadRenderer {
     // returns `true` if the frame should be updated
     fn handle_input(&mut self) -> bool {
-        let dt = get_frame_time() * 20.;
-        let zoom_delta = 0.05;
-        let offset_delta =
-            HighPrecision::from_f64(zoom_delta) * HighPrecision::from_f64(self.zoom).exp2();
-
-        let offset_multiplier = 1.5;
-        let zoom_multiplier = 5.;
-
         let mut update = false;
-
-        // I hate this, but it works. will be very hard to extend
-        let mut refs = [&mut self.offset.y, &mut self.offset.x];
-        let keycodes = [KeyCode::W, KeyCode::S, KeyCode::A, KeyCode::D];
-
-        for (i, keycode) in keycodes.into_iter().enumerate() {
-            let r = &mut refs[i / 2];
-
-            let delta = if i % 2 == 0 {
-                -offset_delta
-            } else {
-                offset_delta
-            };
-
-            update |= fast_key(*r, keycode, delta, offset_multiplier, dt);
-        }
-
-        let keycodes = [KeyCode::Equal, KeyCode::Minus];
-
-        for (i, keycode) in keycodes.into_iter().enumerate() {
-            let delta = if i % 2 == 0 { -zoom_delta } else { zoom_delta };
-            update |= fast_key(&mut self.zoom, keycode, delta, zoom_multiplier, dt);
-        }
+        let dt = HighPrecision::from(get_frame_time());
+        update |= self.handle_move(dt);
+        update |= self.handle_zoom(dt);
 
         if is_key_pressed(KeyCode::I) {
             self.should_show_info = !self.should_show_info;
@@ -162,15 +109,79 @@ impl MacroquadRenderer {
         add_line(format!("x: {:?}", self.offset.x));
         add_line(format!("y: {:?}", self.offset.y));
 
-        add_line(format!("w: {:?}", self.last_size.w));
-        add_line(format!("h: {:?}", self.last_size.h));
+        add_line(format!("zoom: {:?}", self.zoom));
 
-        add_line(format!("zoom:     {:?}", self.zoom));
-        add_line(format!("zoom exp: {:?}", self.zoom.exp2()));
+        let size = &self.last_size;
+        add_line(format!("w: {:?}", size.w));
+        add_line(format!("h: {:?}", size.h));
 
         let ups = self.last_produce_duration.as_secs_f32().recip();
         add_line(format!("{:>9.02?}", self.last_produce_duration));
         add_line(format!("{:>7.02}UPS", ups));
+    }
+
+    // returns `true` if the frame should be updated
+    fn handle_zoom(&mut self, dt: HighPrecision) -> bool {
+        let mut update = false;
+
+        let abs_delta_percent = HighPrecision::from(1.0);
+        let multiplier = if is_key_down(KeyCode::LeftShift) {
+            HighPrecision::from(2.0)
+        } else {
+            HighPrecision::from(1.0)
+        };
+
+        let delta_percent = if is_key_down(KeyCode::Minus) {
+            update = true;
+            abs_delta_percent
+        } else if is_key_down(KeyCode::Equal) {
+            update = true;
+            -abs_delta_percent
+        } else {
+            HighPrecision::from(0.0)
+        };
+
+        self.zoom *= HighPrecision::from(1.0) + delta_percent * multiplier * dt;
+
+        update
+    }
+
+    // returns `true` if the frame should be updated
+    fn handle_move(&mut self, dt: HighPrecision) -> bool {
+        let mut update = false;
+
+        let percentage = HighPrecision::from(0.50);
+
+        let multiplier = if is_key_down(KeyCode::LeftShift) {
+            HighPrecision::from(2.0)
+        } else {
+            HighPrecision::from(1.0)
+        };
+
+        let dx = self.last_size.w * percentage * dt * multiplier;
+        let dy = self.last_size.h * percentage * dt * multiplier;
+
+        if is_key_down(KeyCode::W) {
+            self.offset.y -= dy;
+            update = true;
+        }
+
+        if is_key_down(KeyCode::S) {
+            self.offset.y += dy;
+            update = true;
+        }
+
+        if is_key_down(KeyCode::A) {
+            self.offset.x -= dx;
+            update = true;
+        }
+
+        if is_key_down(KeyCode::D) {
+            self.offset.x += dx;
+            update = true;
+        }
+
+        update
     }
 }
 

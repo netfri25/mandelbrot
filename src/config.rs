@@ -47,9 +47,9 @@ impl Config {
             .unwrap();
 
         let resolution = self.resolution.0;
+        let offset = Default::default(); // TODO: make this configureable?
         let mut producer = self.create_producer();
-        let mut renderer =
-            crate::renderer::macroquad::MacroquadRenderer::new(1., Default::default(), resolution);
+        let mut renderer = crate::renderer::macroquad::MacroquadRenderer::new(offset, resolution);
 
         let program = async move {
             loop {

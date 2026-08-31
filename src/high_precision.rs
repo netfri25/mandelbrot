@@ -7,7 +7,6 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 
 use fixed::prelude::*;
 
-use crate::exp2::Exp2;
 use crate::from_f64::FromF64;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
@@ -34,12 +33,6 @@ impl From<f64> for HighPrecision {
 impl FromF64 for HighPrecision {
     fn from_f64(value: f64) -> Self {
         Self::from(value)
-    }
-}
-
-impl Exp2 for HighPrecision {
-    fn exp2(self) -> Self {
-        Self(fixed_analytics::pow2(self.0))
     }
 }
 

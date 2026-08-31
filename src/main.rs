@@ -3,7 +3,6 @@
 use clap::Parser;
 
 mod config;
-mod exp2;
 mod fast_float;
 mod from_f64;
 mod high_precision;

@@ -2,7 +2,6 @@ use std::ops::{
     Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign,
 };
 
-use crate::exp2::Exp2;
 use crate::from_f64::FromF64;
 
 macro_rules! impl_binop {
@@ -59,12 +58,6 @@ macro_rules! impl_all {
         impl FromF64 for $target_name {
             fn from_f64(value: f64) -> Self {
                 Self(value as $target_type)
-            }
-        }
-
-        impl Exp2 for $target_name {
-            fn exp2(self) -> Self {
-                Self(self.0.exp2())
             }
         }
 
