@@ -1,8 +1,3 @@
-// TODO:
-//  to support future numbers with higher precision, switch this type to use a higher precision type
-//  ideally, it should also support `Copy`, but just `Clone` is also fine, but it will require a bit
-//  of refactoring.
-
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use fixed::prelude::*;
