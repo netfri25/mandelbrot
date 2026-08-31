@@ -6,5 +6,7 @@ edition = "2024"
 [dependencies]
 clap = { version = "4.6.6", features = ["derive"] }
 fast-posit = "0.2.0"
+fixed = "1.31.0"
+fixed_analytics = "2.1.0"
 macroquad = "0.4.16"
 rayon = "1.12.0"

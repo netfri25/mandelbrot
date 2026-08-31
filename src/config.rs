@@ -3,6 +3,7 @@ use std::pin::Pin;
 use clap::{Parser, ValueEnum};
 
 use crate::fast_float::{FastF32, FastF64};
+use crate::high_precision::HighPrecision;
 use crate::producer::Producer;
 use crate::producer::threaded::ThreadedProducer;
 
@@ -82,6 +83,7 @@ impl Config {
             NumberType::FastF64 => self.create_naive_producer::<FastF64>(),
             NumberType::FastF32 => self.create_naive_producer::<FastF32>(),
             NumberType::Posit => self.create_naive_producer::<fast_posit::p64>(),
+            NumberType::HighPrecision => self.create_naive_producer::<HighPrecision>(),
         }
     }
 
@@ -269,6 +271,8 @@ pub enum NumberType {
     FastF32,
     /// posit (Type III Unum)
     Posit,
+    /// Program defined high precision number
+    HighPrecision,
 }
 
 #[derive(Debug, Clone, Copy)]

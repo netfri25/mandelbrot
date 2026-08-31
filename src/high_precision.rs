@@ -5,27 +5,29 @@
 
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
+use fixed::prelude::*;
+
 use crate::exp2::Exp2;
 use crate::from_f64::FromF64;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
-pub struct HighPrecision(f64);
+pub struct HighPrecision(fixed::types::I10F118);
 
 impl HighPrecision {
     pub fn to_f64(self) -> f64 {
-        self.0
+        FromFixed::from_fixed(self.0)
     }
 }
 
 impl From<f32> for HighPrecision {
     fn from(value: f32) -> Self {
-        Self(value as f64)
+        Self(value.to_fixed())
     }
 }
 
 impl From<f64> for HighPrecision {
     fn from(value: f64) -> Self {
-        Self(value)
+        Self(value.to_fixed())
     }
 }
 
@@ -37,7 +39,7 @@ impl FromF64 for HighPrecision {
 
 impl Exp2 for HighPrecision {
     fn exp2(self) -> Self {
-        Self(self.0.exp2())
+        Self(fixed_analytics::pow2(self.0))
     }
 }
 
@@ -101,5 +103,23 @@ impl MulAssign<Self> for HighPrecision {
 impl DivAssign<Self> for HighPrecision {
     fn div_assign(&mut self, rhs: Self) {
         *self = *self / rhs;
+    }
+}
+
+impl From<HighPrecision> for f32 {
+    fn from(value: HighPrecision) -> Self {
+        value.to_f64() as Self
+    }
+}
+
+impl From<HighPrecision> for f64 {
+    fn from(value: HighPrecision) -> Self {
+        value.to_f64() as Self
+    }
+}
+
+impl From<HighPrecision> for fast_posit::p64 {
+    fn from(value: HighPrecision) -> Self {
+        Self::from_f64(value.to_f64())
     }
 }

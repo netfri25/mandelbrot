@@ -25,6 +25,7 @@ impl<T> NaiveProducer<T> {
 impl<T> Producer for NaiveProducer<T>
 where
     T: FromF64 + Clone + PartialOrd,
+    T: From<HighPrecision>,
     T: Neg<Output = T>,
     T: Add<T, Output = T>,
     T: Sub<T, Output = T>,
@@ -40,8 +41,8 @@ where
             .take(dims.h as usize)
             .flat_map(move |y| {
                 range(start.x, step_x).take(dims.w as usize).map(move |x| {
-                    let x = T::from_f64(x.to_f64());
-                    let y = T::from_f64(y.to_f64());
+                    let x: T = x.into();
+                    let y: T = y.into();
                     (divergence_iteration(x, y, max_iterations) as f32)
                         .algebraic_div(max_iterations as f32)
                 })
