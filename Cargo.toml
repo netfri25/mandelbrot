@@ -10,3 +10,8 @@ fixed = "1.31.0"
 fixed_analytics = "2.1.0"
 macroquad = "0.4.16"
 rayon = "1.12.0"
+
+[features]
+# since there's a lot of generic SIMD code, compiling it takes a loooong time.
+# this feature exist so I can temporarly disable it and test changes without waiting a lot.
+no_simd = []

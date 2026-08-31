@@ -118,7 +118,17 @@ impl Config {
         self.make_threaded(move || crate::producer::naive::NaiveProducer::<T>::new(iterations))
     }
 
+    #[cfg(feature = "no_simd")]
+    fn create_simd_or_naive_producer<T>(&self, lanes: u8) -> Box<dyn Producer + Send>
+    where
+        T: Send + 'static,
+        crate::producer::naive::NaiveProducer<T>: Producer + Send + 'static,
+    {
+        self.create_naive_producer::<T>()
+    }
+
     // NOTE: this can probably be done with code generation, but a using `g<c-a>` in vim is enough
+    #[cfg(not(feature = "no_simd"))]
     fn create_simd_or_naive_producer<T>(&self, lanes: u8) -> Box<dyn Producer + Send>
     where
         T: Send + 'static,
