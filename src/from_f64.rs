@@ -1,3 +1,4 @@
+// NOTE: this trait exists since I want `f32: From<f64>`, but it's not a thing sadly.
 pub trait FromF64 {
     fn from_f64(value: f64) -> Self;
 }
