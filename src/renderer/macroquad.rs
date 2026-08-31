@@ -18,6 +18,7 @@ pub struct MacroquadRenderer {
     frame: Option<Texture2D>,
     last_produce_duration: Duration,
     should_show_info: bool,
+    last_size: Size,
 }
 
 impl MacroquadRenderer {
@@ -29,32 +30,38 @@ impl MacroquadRenderer {
             frame: None,
             last_produce_duration: Duration::default(),
             should_show_info: false,
+            last_size: Size::default(),
         }
     }
 
     fn update_frame(&mut self, dims: Dimensions, producer: &mut (impl Producer + ?Sized)) {
-        let (ratio_w, ratio_h) = if dims.w > dims.h {
-            (1., dims.h as f64 / dims.w as f64)
+        let dims_w = HighPrecision::from_f64(dims.w as f64);
+        let dims_h = HighPrecision::from_f64(dims.h as f64);
+        let one = HighPrecision::from_f64(1.);
+        let [ratio_w, ratio_h] = if dims_w > dims_h {
+            [one, dims_h / dims_w]
         } else {
-            (dims.w as f64 / dims.h as f64, 1.)
+            [dims_w / dims_h, one]
         };
 
-        let zoom_exp = self.zoom.exp2();
+        let zoom_exp = HighPrecision::from_f64(self.zoom).exp2();
         let zoom_w = zoom_exp * ratio_w;
         let zoom_h = zoom_exp * ratio_h;
 
         let size = Size {
-            w: HighPrecision::from_f64(zoom_w),
-            h: HighPrecision::from_f64(zoom_h),
+            w: zoom_w,
+            h: zoom_h,
         };
 
-        let base_offset_x = HighPrecision::from_f64(-zoom_w / 2.);
-        let base_offset_y = HighPrecision::from_f64(-zoom_h / 2.);
+        let neg_half = HighPrecision::from_f64(-0.5);
+        let base_offset_x = neg_half * zoom_w;
+        let base_offset_y = neg_half * zoom_h;
         let top_left = Pos {
             x: base_offset_x + self.offset.x,
             y: base_offset_y + self.offset.y,
         };
 
+        self.last_size = size.clone();
         let produce_start = Instant::now();
         let values = producer.produce(top_left, size, dims);
         self.last_produce_duration = produce_start.elapsed();
@@ -146,55 +153,24 @@ impl MacroquadRenderer {
         let line_delta = 0.7;
         let text_color = BROWN;
 
-        draw_text(
-            format!("x: {:?}", self.offset.x),
-            0.,
-            1. * line_delta * size,
-            size,
-            text_color,
-        );
-        draw_text(
-            format!("y: {:?}", self.offset.y),
-            0.,
-            2. * line_delta * size,
-            size,
-            text_color,
-        );
+        let mut line = 0.;
+        let mut add_line = |text| {
+            line += 1.;
+            draw_text(text, 0., line * line_delta * size, size, text_color);
+        };
 
-        draw_text(
-            format!("zoom:     {:?}", self.zoom),
-            0.,
-            3. * line_delta * size,
-            size,
-            text_color,
-        );
+        add_line(format!("x: {:?}", self.offset.x));
+        add_line(format!("y: {:?}", self.offset.y));
 
-        draw_text(
-            format!("zoom exp: {:?}", self.zoom.exp2()),
-            0.,
-            4. * line_delta * size,
-            size,
-            text_color,
-        );
+        add_line(format!("w: {:?}", self.last_size.w));
+        add_line(format!("h: {:?}", self.last_size.h));
 
-        draw_text(
-            format!("{:>9.02?}", self.last_produce_duration),
-            0.,
-            5. * line_delta * size,
-            size,
-            text_color,
-        );
+        add_line(format!("zoom:     {:?}", self.zoom));
+        add_line(format!("zoom exp: {:?}", self.zoom.exp2()));
 
-        draw_text(
-            format!(
-                "{:>7.02}UPS",
-                self.last_produce_duration.as_secs_f32().recip()
-            ),
-            0.,
-            6. * line_delta * size,
-            size,
-            text_color,
-        );
+        let ups = self.last_produce_duration.as_secs_f32().recip();
+        add_line(format!("{:>9.02?}", self.last_produce_duration));
+        add_line(format!("{:>7.02}UPS", ups));
     }
 }
 
