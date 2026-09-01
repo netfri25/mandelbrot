@@ -1,6 +1,7 @@
 use crate::types::{Dimensions, Pos, Size};
 
 pub mod naive;
+#[cfg(not(feature = "no_simd"))]
 pub mod simd;
 pub mod threaded;
 

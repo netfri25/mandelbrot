@@ -1,4 +1,4 @@
-#![feature(portable_simd)]
+#![cfg_attr(not(feature = "no_simd"), feature(portable_simd))]
 
 use clap::Parser;
 

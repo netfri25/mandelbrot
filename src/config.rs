@@ -100,6 +100,7 @@ impl Config {
         }
     }
 
+    #[cfg(not(feature = "no_simd"))]
     fn create_simd_producer<T, const LANES: usize>(&self) -> Box<dyn Producer + Send>
     where
         T: Send + 'static,
@@ -119,7 +120,7 @@ impl Config {
     }
 
     #[cfg(feature = "no_simd")]
-    fn create_simd_or_naive_producer<T>(&self, lanes: u8) -> Box<dyn Producer + Send>
+    fn create_simd_or_naive_producer<T>(&self, _lanes: u8) -> Box<dyn Producer + Send>
     where
         T: Send + 'static,
         crate::producer::naive::NaiveProducer<T>: Producer + Send + 'static,
