@@ -20,12 +20,3 @@ pub trait Producer {
     ///
     fn produce(&mut self, start: Pos, size: Size, dims: Dimensions) -> Vec<f32>;
 }
-
-impl<P> Producer for Box<P>
-where
-    P: Producer + ?Sized,
-{
-    fn produce(&mut self, start: Pos, size: Size, dims: Dimensions) -> Vec<f32> {
-        self.as_mut().produce(start, size, dims)
-    }
-}
