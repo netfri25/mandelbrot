@@ -19,6 +19,7 @@ pub struct Config {
 
     /// amount of SIMD lanes to use (only for `f32` or `f64`).
     /// use 0 for a non-SIMD implementation
+    #[cfg(not(feature = "no_simd"))]
     #[arg(long, value_parser = clap::value_parser!(u8).range(0..=64), default_value_t = 64)]
     pub simd: u8,
 
@@ -77,9 +78,15 @@ impl Config {
     }
 
     fn create_producer(&self) -> Box<dyn Producer + Send> {
+        #[cfg(feature = "no_simd")]
+        let simd = 1;
+
+        #[cfg(not(feature = "no_simd"))]
+        let simd = self.simd;
+
         match self.number_type {
-            NumberType::F64 => self.create_simd_or_naive_producer::<f64>(self.simd),
-            NumberType::F32 => self.create_simd_or_naive_producer::<f32>(self.simd),
+            NumberType::F64 => self.create_simd_or_naive_producer::<f64>(simd),
+            NumberType::F32 => self.create_simd_or_naive_producer::<f32>(simd),
             NumberType::FastF64 => self.create_naive_producer::<FastF64>(),
             NumberType::FastF32 => self.create_naive_producer::<FastF32>(),
             NumberType::Posit => self.create_naive_producer::<fast_posit::p64>(),
