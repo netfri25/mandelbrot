@@ -5,7 +5,7 @@ use fixed::prelude::*;
 use crate::from_f64::FromF64;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
-pub struct HighPrecision(fixed::types::I10F118);
+pub struct HighPrecision(fixed::types::I20F108);
 
 impl HighPrecision {
     pub fn to_f64(self) -> f64 {
