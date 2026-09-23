@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use crate::types::{Dimensions, Pos, Size};
 
 pub mod naive;
@@ -19,4 +21,14 @@ pub trait Producer {
     /// * `dims`: the amount of "pixels" to generate
     ///
     fn produce(&mut self, start: Pos, size: Size, dims: Dimensions) -> Vec<f32>;
+}
+
+impl<P> Producer for P
+where
+    P: DerefMut,
+    <P as Deref>::Target: Producer,
+{
+    fn produce(&mut self, start: Pos, size: Size, dims: Dimensions) -> Vec<f32> {
+        self.deref_mut().produce(start, size, dims)
+    }
 }

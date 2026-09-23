@@ -49,13 +49,14 @@ impl Config {
 
         let resolution = self.resolution.0;
         let offset = Default::default(); // TODO: make this configureable?
-        let mut producer = self.create_producer();
-        let mut renderer = crate::renderer::macroquad::MacroquadRenderer::new(offset, resolution);
+        let producer = self.create_producer();
+        let mut renderer =
+            crate::renderer::macroquad::MacroquadRenderer::new(producer, offset, resolution);
 
         let program = async move {
             loop {
                 macroquad::prelude::clear_background(::macroquad::prelude::BLACK);
-                crate::renderer::Renderer::render(&mut renderer, producer.as_mut());
+                crate::renderer::Renderer::render(&mut renderer);
                 macroquad::prelude::next_frame().await
             }
         };

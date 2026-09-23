@@ -1,4 +1,3 @@
-
 use crate::high_precision::HighPrecision;
 
 #[derive(Debug, Default, Clone, PartialEq)]

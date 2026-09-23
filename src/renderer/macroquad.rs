@@ -9,7 +9,8 @@ use crate::types::{Dimensions, Pos, Size};
 
 use super::Renderer;
 
-pub struct MacroquadRenderer {
+pub struct MacroquadRenderer<P> {
+    producer: P,
     zoom: HighPrecision,
     offset: Pos,
     resolution: f32,
@@ -19,9 +20,10 @@ pub struct MacroquadRenderer {
     last_size: Size,
 }
 
-impl MacroquadRenderer {
-    pub fn new(offset: Pos, resolution: f32) -> Self {
+impl<P> MacroquadRenderer<P> {
+    pub fn new(producer: P, offset: Pos, resolution: f32) -> Self {
         Self {
+            producer,
             zoom: HighPrecision::from(3.5),
             offset,
             resolution,
@@ -53,7 +55,10 @@ impl MacroquadRenderer {
         self.last_size.clone()
     }
 
-    fn update_frame(&mut self, dims: Dimensions, producer: &mut (impl Producer + ?Sized)) {
+    fn update_frame(&mut self, dims: Dimensions)
+    where
+        P: Producer,
+    {
         let size = self.get_size(dims);
 
         let neg_half = HighPrecision::from_f64(-0.5);
@@ -65,7 +70,7 @@ impl MacroquadRenderer {
         };
 
         let produce_start = Instant::now();
-        let values = producer.produce(top_left, size, dims);
+        let values = self.producer.produce(top_left, size, dims);
         self.last_produce_duration = produce_start.elapsed();
 
         let minimum = values.iter().fold(0.9, |a, b| b.min(a));
@@ -185,11 +190,11 @@ impl MacroquadRenderer {
     }
 }
 
-impl<P> Renderer<P> for MacroquadRenderer
+impl<P> Renderer for MacroquadRenderer<P>
 where
-    P: Producer + ?Sized,
+    P: Producer,
 {
-    fn render(&mut self, producer: &mut P) {
+    fn render(&mut self) {
         let update = self.handle_input();
 
         let dims = Dimensions {
@@ -198,7 +203,7 @@ where
         };
 
         if update || self.frame.is_none() {
-            self.update_frame(dims, producer)
+            self.update_frame(dims)
         }
 
         let frame = self
