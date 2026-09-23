@@ -1,11 +1,17 @@
-use std::ops::{Deref, DerefMut};
-
+use crate::high_precision::HighPrecision;
 use crate::types::{Dimensions, Pos, Size};
 
 pub mod naive;
+pub mod offset;
+pub mod scale;
 #[cfg(not(feature = "no_simd"))]
 pub mod simd;
 pub mod threaded;
+pub mod zoom;
+
+pub use offset::Offset;
+pub use scale::Scale;
+pub use zoom::Zoom;
 
 pub trait Producer {
     /// produce values to be rendered as the mandelbrot set
@@ -23,12 +29,36 @@ pub trait Producer {
     fn produce(&mut self, start: Pos, size: Size, dims: Dimensions) -> Vec<f32>;
 }
 
-impl<P> Producer for P
+pub trait ProducerExt: Sized {
+    fn zoom(self, zoom: HighPrecision) -> Zoom<Self> {
+        Zoom::new(self, zoom)
+    }
+
+    fn scale(self, scale: f32) -> Scale<Self> {
+        Scale::new(self, scale)
+    }
+
+    fn offset(self, offset: Pos) -> Offset<Self> {
+        Offset::new(self, offset)
+    }
+}
+
+impl<P> ProducerExt for P where P: Producer {}
+
+impl<P> Producer for &mut P
 where
-    P: DerefMut,
-    <P as Deref>::Target: Producer,
+    P: Producer + ?Sized,
 {
     fn produce(&mut self, start: Pos, size: Size, dims: Dimensions) -> Vec<f32> {
-        self.deref_mut().produce(start, size, dims)
+        (**self).produce(start, size, dims)
+    }
+}
+
+impl<P> Producer for Box<P>
+where
+    P: Producer + ?Sized
+{
+    fn produce(&mut self, start: Pos, size: Size, dims: Dimensions) -> Vec<f32> {
+        (**self).produce(start, size, dims)
     }
 }

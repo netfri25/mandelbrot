@@ -6,7 +6,7 @@ mod config;
 mod fast_float;
 mod from_f64;
 mod high_precision;
-mod producer;
+pub mod producer;
 mod renderer;
 mod types;
 

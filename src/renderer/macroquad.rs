@@ -4,16 +4,13 @@ use macroquad::prelude::*;
 
 use crate::from_f64::FromF64;
 use crate::high_precision::HighPrecision;
-use crate::producer::Producer;
+use crate::producer::{Offset, Producer, Scale, Zoom};
 use crate::types::{Dimensions, Pos, Size};
 
 use super::Renderer;
 
 pub struct MacroquadRenderer<P> {
-    producer: P,
-    zoom: HighPrecision,
-    offset: Pos,
-    resolution: f32,
+    producer: Scale<Zoom<Offset<P>>>,
     frame: Option<Texture2D>,
     last_produce_duration: Duration,
     should_show_info: bool,
@@ -21,12 +18,9 @@ pub struct MacroquadRenderer<P> {
 }
 
 impl<P> MacroquadRenderer<P> {
-    pub fn new(producer: P, offset: Pos, resolution: f32) -> Self {
+    pub fn new(producer: Scale<Zoom<Offset<P>>>) -> Self {
         Self {
             producer,
-            zoom: HighPrecision::from(3.5),
-            offset,
-            resolution,
             frame: None,
             last_produce_duration: Duration::default(),
             should_show_info: false,
@@ -34,7 +28,7 @@ impl<P> MacroquadRenderer<P> {
         }
     }
 
-    fn get_size(&mut self, dims: Dimensions) -> Size {
+    fn get_ratio_size(&self, dims: Dimensions) -> Size {
         let dims_w = HighPrecision::from_f64(dims.w as f64);
         let dims_h = HighPrecision::from_f64(dims.h as f64);
         let one = HighPrecision::from_f64(1.);
@@ -44,38 +38,37 @@ impl<P> MacroquadRenderer<P> {
             [dims_w / dims_h, one]
         };
 
-        let zoom_w = self.zoom * ratio_w;
-        let zoom_h = self.zoom * ratio_h;
-
-        self.last_size = Size {
-            w: zoom_w,
-            h: zoom_h,
-        };
-
-        self.last_size.clone()
+        Size {
+            w: ratio_w,
+            h: ratio_h,
+        }
     }
 
     fn update_frame(&mut self, dims: Dimensions)
     where
         P: Producer,
     {
-        let size = self.get_size(dims);
-
         let neg_half = HighPrecision::from_f64(-0.5);
-        let base_offset_x = neg_half * size.w;
-        let base_offset_y = neg_half * size.h;
         let top_left = Pos {
-            x: base_offset_x + self.offset.x,
-            y: base_offset_y + self.offset.y,
+            x: neg_half,
+            y: neg_half,
         };
 
+        let size = self.get_ratio_size(dims);
         let produce_start = Instant::now();
         let values = self.producer.produce(top_left, size, dims);
         self.last_produce_duration = produce_start.elapsed();
 
         let minimum = values.iter().fold(0.9, |a, b| b.min(a));
 
+        let dims = Dimensions {
+            w: (dims.w as f32 / self.producer.scale()) as u64,
+            h: (dims.h as f32 / self.producer.scale()) as u64,
+        };
+
         let mut image = Image::gen_image_color(dims.w as u16, dims.h as u16, Color::default());
+        let ratio_size = self.get_ratio_size(dims);
+        self.last_size = self.producer.get_zoom_size(&ratio_size);
 
         let colors: Vec<_> = values
             .into_iter()
@@ -111,10 +104,10 @@ impl<P> MacroquadRenderer<P> {
             draw_text(text, 0., line * line_delta * size, size, text_color);
         };
 
-        add_line(format!("x: {:?}", self.offset.x));
-        add_line(format!("y: {:?}", self.offset.y));
-
-        add_line(format!("zoom: {:?}", self.zoom));
+        // add_line(format!("x: {:?}", self.offset.x));
+        // add_line(format!("y: {:?}", self.offset.y));
+        //
+        // add_line(format!("zoom: {:?}", self.zoom));
 
         let size = &self.last_size;
         add_line(format!("w: {:?}", size.w));
@@ -146,7 +139,7 @@ impl<P> MacroquadRenderer<P> {
             HighPrecision::from(0.0)
         };
 
-        self.zoom *= HighPrecision::from(1.0) + delta_percent * multiplier * dt;
+        *self.producer.zoom_mut() *= HighPrecision::from(1.0) + delta_percent * multiplier * dt;
 
         update
     }
@@ -167,22 +160,22 @@ impl<P> MacroquadRenderer<P> {
         let dy = self.last_size.h * percentage * dt * multiplier;
 
         if is_key_down(KeyCode::W) {
-            self.offset.y -= dy;
+            self.producer.offset_mut().y -= dy;
             update = true;
         }
 
         if is_key_down(KeyCode::S) {
-            self.offset.y += dy;
+            self.producer.offset_mut().y += dy;
             update = true;
         }
 
         if is_key_down(KeyCode::A) {
-            self.offset.x -= dx;
+            self.producer.offset_mut().x -= dx;
             update = true;
         }
 
         if is_key_down(KeyCode::D) {
-            self.offset.x += dx;
+            self.producer.offset_mut().x += dx;
             update = true;
         }
 
@@ -198,8 +191,8 @@ where
         let update = self.handle_input();
 
         let dims = Dimensions {
-            w: (self.resolution * screen_width()) as u64,
-            h: (self.resolution * screen_height()) as u64,
+            w: screen_width() as u64,
+            h: screen_height() as u64,
         };
 
         if update || self.frame.is_none() {
@@ -218,8 +211,8 @@ where
             WHITE,
             DrawTextureParams {
                 dest_size: Some(vec2(
-                    dims.w as f32 / self.resolution,
-                    dims.h as f32 / self.resolution,
+                    dims.w as f32 * self.producer.scale(),
+                    dims.h as f32 * self.producer.scale(),
                 )),
                 ..Default::default()
             },

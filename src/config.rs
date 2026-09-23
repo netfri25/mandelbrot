@@ -4,8 +4,8 @@ use clap::{Parser, ValueEnum};
 
 use crate::fast_float::{FastF32, FastF64};
 use crate::high_precision::HighPrecision;
-use crate::producer::Producer;
 use crate::producer::threaded::ThreadedProducer;
+use crate::producer::{Offset, Producer, ProducerExt, Scale, Zoom};
 
 #[derive(Parser)]
 pub struct Config {
@@ -47,11 +47,9 @@ impl Config {
             .build_global()
             .unwrap();
 
-        let resolution = self.resolution.0;
-        let offset = Default::default(); // TODO: make this configureable?
         let producer = self.create_producer();
         let mut renderer =
-            crate::renderer::macroquad::MacroquadRenderer::new(producer, offset, resolution);
+            crate::renderer::macroquad::MacroquadRenderer::new(producer);
 
         let program = async move {
             loop {
@@ -78,7 +76,14 @@ impl Config {
         }
     }
 
-    fn create_producer(&self) -> Box<dyn Producer + Send> {
+    fn create_producer(&self) -> Scale<Zoom<Offset<impl Producer + 'static>>> {
+        self.create_inner_producer()
+            .offset(Default::default()) // TODO: make this configureable?
+            .zoom(3.5.into())
+            .scale(self.resolution.0.recip())
+    }
+
+    fn create_inner_producer(&self) -> Box<dyn Producer + Send> {
         #[cfg(feature = "no_simd")]
         let simd = 1;
 
