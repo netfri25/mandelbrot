@@ -49,8 +49,10 @@ where
                 let section_offset_y = HighPrecision::from_f64(section_offset_y as f64);
 
                 let start = Pos {
-                    x: section_offset_x / HighPrecision::from_f64(dims.w as f64) * view.size.w + view.start.x,
-                    y: section_offset_y / HighPrecision::from_f64(dims.h as f64) * view.size.h + view.start.y,
+                    x: section_offset_x / HighPrecision::from_f64(dims.w as f64) * view.size.w
+                        + view.start.x,
+                    y: section_offset_y / HighPrecision::from_f64(dims.h as f64) * view.size.h
+                        + view.start.y,
                 };
 
                 let size = Size {

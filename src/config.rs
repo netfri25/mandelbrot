@@ -5,8 +5,8 @@ use clap::{Parser, ValueEnum};
 use crate::explorer::Explorer;
 use crate::fast_float::{FastF32, FastF64};
 use crate::high_precision::HighPrecision;
-use crate::producer::threaded::ThreadedProducer;
 use crate::producer::Producer;
+use crate::producer::threaded::ThreadedProducer;
 
 #[derive(Parser)]
 pub struct Config {

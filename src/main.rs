@@ -3,13 +3,13 @@
 use clap::Parser;
 
 mod config;
+mod explorer;
 mod fast_float;
 mod from_f64;
 mod high_precision;
 mod producer;
 mod renderer;
 mod types;
-mod explorer;
 
 fn main() {
     let config = config::Config::parse();

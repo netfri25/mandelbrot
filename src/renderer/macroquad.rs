@@ -192,10 +192,7 @@ where
             0.,
             WHITE,
             DrawTextureParams {
-                dest_size: Some(vec2(
-                    dims.w as f32,
-                    dims.h as f32,
-                )),
+                dest_size: Some(vec2(dims.w as f32, dims.h as f32)),
                 ..Default::default()
             },
         );

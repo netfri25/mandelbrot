@@ -40,12 +40,14 @@ where
         range(view.start.y, step_y)
             .take(dims.h as usize)
             .flat_map(move |y| {
-                range(view.start.x, step_x).take(dims.w as usize).map(move |x| {
-                    let x: T = x.into();
-                    let y: T = y.into();
-                    (divergence_iteration(x, y, max_iterations) as f32)
-                        .algebraic_div(max_iterations as f32)
-                })
+                range(view.start.x, step_x)
+                    .take(dims.w as usize)
+                    .map(move |x| {
+                        let x: T = x.into();
+                        let y: T = y.into();
+                        (divergence_iteration(x, y, max_iterations) as f32)
+                            .algebraic_div(max_iterations as f32)
+                    })
             })
             .collect()
     }
