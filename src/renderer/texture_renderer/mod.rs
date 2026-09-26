@@ -5,6 +5,7 @@ use macroquad::prelude::Texture2D;
 use crate::types::{Dimensions, View};
 
 pub mod cpu;
+pub mod gpu;
 
 pub trait TextureRenderer {
     fn render_texture(&mut self, view: &View, dims: Dimensions) -> Texture2D;

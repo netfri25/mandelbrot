@@ -10,6 +10,7 @@ use crate::producer::Producer;
 use crate::producer::threaded::ThreadedProducer;
 use crate::renderer::texture_renderer::TextureRenderer;
 use crate::renderer::texture_renderer::cpu::CpuTextureRenderer;
+use crate::renderer::texture_renderer::gpu::GpuTextureRenderer;
 
 #[derive(Parser)]
 pub struct Config {
@@ -35,6 +36,10 @@ pub struct Config {
     #[arg(long, short = 'r')]
     pub window_resizable: bool,
 
+    /// run on the GPU (only f32)
+    #[arg(long, short)]
+    pub gpu: bool,
+
     /// rendering resolution
     #[arg(long, value_parser = Resolution::parse, default_value = "0.5")]
     pub resolution: Resolution,
@@ -46,21 +51,21 @@ pub struct Config {
 
 impl Config {
     pub fn create_macroquad_program(self) -> Pin<Box<dyn Future<Output = ()>>> {
-        rayon::ThreadPoolBuilder::new()
-            .num_threads(self.threads as usize)
-            .build_global()
-            .unwrap();
-
-        let explorer = self.create_explorer();
-        let resolution = self.resolution.0;
-        let texture_renderer = self.create_texture_renderer();
-        let mut renderer = crate::renderer::macroquad::MacroquadRenderer::new(
-            texture_renderer,
-            explorer,
-            resolution,
-        );
-
         let program = async move {
+            rayon::ThreadPoolBuilder::new()
+                .num_threads(self.threads as usize)
+                .build_global()
+                .unwrap();
+
+            let explorer = self.create_explorer();
+            let resolution = self.resolution.0;
+            let texture_renderer = self.create_texture_renderer();
+            let mut renderer = crate::renderer::macroquad::MacroquadRenderer::new(
+                texture_renderer,
+                explorer,
+                resolution,
+            );
+
             loop {
                 macroquad::prelude::clear_background(::macroquad::prelude::BLACK);
                 crate::renderer::Renderer::render(&mut renderer);
@@ -86,10 +91,13 @@ impl Config {
     }
 
     fn create_texture_renderer(&self) -> Box<dyn TextureRenderer + 'static> {
-        // TODO: allow to select a gpu texture renderer
-        let producer = self.create_cpu_producer();
-        let colorizer = self.create_cpu_colorizer();
-        Box::new(CpuTextureRenderer::new(producer, colorizer))
+        if self.gpu {
+            Box::new(GpuTextureRenderer::new(self.iterations))
+        } else {
+            let producer = self.create_cpu_producer();
+            let colorizer = self.create_cpu_colorizer();
+            Box::new(CpuTextureRenderer::new(producer, colorizer))
+        }
     }
 
     fn create_explorer(&self) -> Explorer {

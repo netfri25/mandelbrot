@@ -13,7 +13,8 @@ pub struct MacroquadRenderer<R> {
     texture_renderer: R,
     frame: Option<Texture2D>,
     resolution: f32,
-    last_produce_duration: Duration,
+    last_frame_duration: Duration,
+    fps: i32,
     should_show_info: bool,
     last_size: Size,
     explorer: Explorer,
@@ -25,7 +26,8 @@ impl<R> MacroquadRenderer<R> {
             texture_renderer,
             frame: None,
             resolution,
-            last_produce_duration: Duration::default(),
+            last_frame_duration: Duration::default(),
+            fps: 0,
             should_show_info: false,
             last_size: Size::default(),
             explorer,
@@ -42,9 +44,7 @@ impl<R> MacroquadRenderer<R> {
         };
 
         let view = self.explorer.view(&dims);
-        let produce_start = Instant::now();
         self.frame = Some(self.texture_renderer.render_texture(&view, dims));
-        self.last_produce_duration = produce_start.elapsed();
 
         let ratio_size = self.explorer.ratio_size(&dims);
         self.last_size = self.explorer.zoom_size(&ratio_size);
@@ -84,9 +84,10 @@ impl<R> MacroquadRenderer<R> {
         add_line(format!("w: {:?}", size.w));
         add_line(format!("h: {:?}", size.h));
 
-        let ups = self.last_produce_duration.as_secs_f32().recip();
-        add_line(format!("{:>9.02?}", self.last_produce_duration));
+        let ups = self.last_frame_duration.as_secs_f32().recip();
+        add_line(format!("{:>9.02?}", self.last_frame_duration));
         add_line(format!("{:>7.02}UPS", ups));
+        add_line(format!("{:>5.02}FPS", self.fps));
     }
 
     // returns `true` if the frame should be updated
@@ -166,8 +167,12 @@ where
             h: screen_height() as u64,
         };
 
+        let frame_start;
         if update || self.frame.is_none() {
+            frame_start = Some(Instant::now());
             self.update_frame(dims)
+        } else {
+            frame_start = None;
         }
 
         let frame = self
@@ -185,6 +190,10 @@ where
                 ..Default::default()
             },
         );
+        if let Some(start) = frame_start {
+            self.last_frame_duration = start.elapsed();
+            self.fps = get_fps();
+        }
 
         if self.should_show_info {
             self.show_info()
