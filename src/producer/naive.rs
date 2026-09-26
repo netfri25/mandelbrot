@@ -5,7 +5,7 @@ use super::Producer;
 
 use crate::from_f64::FromF64;
 use crate::high_precision::HighPrecision;
-use crate::types::{Dimensions, Pos, Size};
+use crate::types::{Dimensions, View};
 
 #[derive(Clone)]
 pub struct NaiveProducer<T> {
@@ -32,15 +32,15 @@ where
     T: Mul<T, Output = T>,
     T: Div<T, Output = T>,
 {
-    fn produce(&mut self, start: Pos, size: Size, dims: Dimensions) -> Vec<f32> {
+    fn produce(&mut self, view: &View, dims: Dimensions) -> Vec<f32> {
         let max_iterations = self.max_iterations;
-        let step_x = size.w / HighPrecision::from_f64(dims.w as f64);
-        let step_y = size.h / HighPrecision::from_f64(dims.h as f64);
+        let step_x = view.size.w / HighPrecision::from_f64(dims.w as f64);
+        let step_y = view.size.h / HighPrecision::from_f64(dims.h as f64);
 
-        range(start.y, step_y)
+        range(view.start.y, step_y)
             .take(dims.h as usize)
             .flat_map(move |y| {
-                range(start.x, step_x).take(dims.w as usize).map(move |x| {
+                range(view.start.x, step_x).take(dims.w as usize).map(move |x| {
                     let x: T = x.into();
                     let y: T = y.into();
                     (divergence_iteration(x, y, max_iterations) as f32)

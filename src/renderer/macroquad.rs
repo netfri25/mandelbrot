@@ -2,45 +2,33 @@ use std::time::{Duration, Instant};
 
 use macroquad::prelude::*;
 
-use crate::from_f64::FromF64;
+use crate::explorer::Explorer;
 use crate::high_precision::HighPrecision;
-use crate::producer::{Offset, Producer, Scale, Zoom};
-use crate::types::{Dimensions, Pos, Size};
+use crate::producer::Producer;
+use crate::types::{Dimensions, Size};
 
 use super::Renderer;
 
 pub struct MacroquadRenderer<P> {
-    producer: Scale<Zoom<Offset<P>>>,
+    producer: P,
     frame: Option<Texture2D>,
+    resolution: f32,
     last_produce_duration: Duration,
     should_show_info: bool,
     last_size: Size,
+    explorer: Explorer,
 }
 
 impl<P> MacroquadRenderer<P> {
-    pub fn new(producer: Scale<Zoom<Offset<P>>>) -> Self {
+    pub fn new(producer: P, explorer: Explorer, resolution: f32) -> Self {
         Self {
             producer,
             frame: None,
+            resolution,
             last_produce_duration: Duration::default(),
             should_show_info: false,
             last_size: Size::default(),
-        }
-    }
-
-    fn get_ratio_size(&self, dims: Dimensions) -> Size {
-        let dims_w = HighPrecision::from_f64(dims.w as f64);
-        let dims_h = HighPrecision::from_f64(dims.h as f64);
-        let one = HighPrecision::from_f64(1.);
-        let [ratio_w, ratio_h] = if dims_w > dims_h {
-            [one, dims_h / dims_w]
-        } else {
-            [dims_w / dims_h, one]
-        };
-
-        Size {
-            w: ratio_w,
-            h: ratio_h,
+            explorer,
         }
     }
 
@@ -48,27 +36,21 @@ impl<P> MacroquadRenderer<P> {
     where
         P: Producer,
     {
-        let neg_half = HighPrecision::from_f64(-0.5);
-        let top_left = Pos {
-            x: neg_half,
-            y: neg_half,
+        let dims = Dimensions {
+            w: (dims.w as f32 * self.resolution) as u64,
+            h: (dims.h as f32 * self.resolution) as u64,
         };
 
-        let size = self.get_ratio_size(dims);
+        let view = self.explorer.view(&dims);
         let produce_start = Instant::now();
-        let values = self.producer.produce(top_left, size, dims);
+        let values = self.producer.produce(&view, dims);
         self.last_produce_duration = produce_start.elapsed();
 
         let minimum = values.iter().fold(0.9, |a, b| b.min(a));
 
-        let dims = Dimensions {
-            w: (dims.w as f32 / self.producer.scale()) as u64,
-            h: (dims.h as f32 / self.producer.scale()) as u64,
-        };
-
         let mut image = Image::gen_image_color(dims.w as u16, dims.h as u16, Color::default());
-        let ratio_size = self.get_ratio_size(dims);
-        self.last_size = self.producer.get_zoom_size(&ratio_size);
+        let ratio_size = self.explorer.ratio_size(&dims);
+        self.last_size = self.explorer.zoom_size(&ratio_size);
 
         let colors: Vec<_> = values
             .into_iter()
@@ -104,10 +86,10 @@ impl<P> MacroquadRenderer<P> {
             draw_text(text, 0., line * line_delta * size, size, text_color);
         };
 
-        // add_line(format!("x: {:?}", self.offset.x));
-        // add_line(format!("y: {:?}", self.offset.y));
-        //
-        // add_line(format!("zoom: {:?}", self.zoom));
+        add_line(format!("x: {:?}", self.explorer.offset.x));
+        add_line(format!("y: {:?}", self.explorer.offset.y));
+
+        add_line(format!("zoom: {:?}", self.explorer.zoom));
 
         let size = &self.last_size;
         add_line(format!("w: {:?}", size.w));
@@ -139,7 +121,7 @@ impl<P> MacroquadRenderer<P> {
             HighPrecision::from(0.0)
         };
 
-        *self.producer.zoom_mut() *= HighPrecision::from(1.0) + delta_percent * multiplier * dt;
+        self.explorer.zoom *= HighPrecision::from(1.0) + delta_percent * multiplier * dt;
 
         update
     }
@@ -160,22 +142,22 @@ impl<P> MacroquadRenderer<P> {
         let dy = self.last_size.h * percentage * dt * multiplier;
 
         if is_key_down(KeyCode::W) {
-            self.producer.offset_mut().y -= dy;
+            self.explorer.offset.y -= dy;
             update = true;
         }
 
         if is_key_down(KeyCode::S) {
-            self.producer.offset_mut().y += dy;
+            self.explorer.offset.y += dy;
             update = true;
         }
 
         if is_key_down(KeyCode::A) {
-            self.producer.offset_mut().x -= dx;
+            self.explorer.offset.x -= dx;
             update = true;
         }
 
         if is_key_down(KeyCode::D) {
-            self.producer.offset_mut().x += dx;
+            self.explorer.offset.x += dx;
             update = true;
         }
 
@@ -211,8 +193,8 @@ where
             WHITE,
             DrawTextureParams {
                 dest_size: Some(vec2(
-                    dims.w as f32 * self.producer.scale(),
-                    dims.h as f32 * self.producer.scale(),
+                    dims.w as f32,
+                    dims.h as f32,
                 )),
                 ..Default::default()
             },

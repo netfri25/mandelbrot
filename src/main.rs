@@ -6,9 +6,10 @@ mod config;
 mod fast_float;
 mod from_f64;
 mod high_precision;
-pub mod producer;
+mod producer;
 mod renderer;
 mod types;
+mod explorer;
 
 fn main() {
     let config = config::Config::parse();

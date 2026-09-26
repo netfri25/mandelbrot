@@ -2,10 +2,11 @@ use std::pin::Pin;
 
 use clap::{Parser, ValueEnum};
 
+use crate::explorer::Explorer;
 use crate::fast_float::{FastF32, FastF64};
 use crate::high_precision::HighPrecision;
 use crate::producer::threaded::ThreadedProducer;
-use crate::producer::{Offset, Producer, ProducerExt, Scale, Zoom};
+use crate::producer::Producer;
 
 #[derive(Parser)]
 pub struct Config {
@@ -48,8 +49,10 @@ impl Config {
             .unwrap();
 
         let producer = self.create_producer();
+        let explorer = self.create_explorer();
+        let resolution = self.resolution.0;
         let mut renderer =
-            crate::renderer::macroquad::MacroquadRenderer::new(producer);
+            crate::renderer::macroquad::MacroquadRenderer::new(producer, explorer, resolution);
 
         let program = async move {
             loop {
@@ -76,14 +79,14 @@ impl Config {
         }
     }
 
-    fn create_producer(&self) -> Scale<Zoom<Offset<impl Producer + 'static>>> {
-        self.create_inner_producer()
-            .offset(Default::default()) // TODO: make this configureable?
-            .zoom(3.5.into())
-            .scale(self.resolution.0.recip())
+    fn create_explorer(&self) -> Explorer {
+        let zoom = 3.5.into();
+        let offset = Default::default(); // TODO: make this configureable?
+        // let resolution = self.resolution.0;
+        Explorer::new(zoom, offset)
     }
 
-    fn create_inner_producer(&self) -> Box<dyn Producer + Send> {
+    fn create_producer(&self) -> Box<dyn Producer + Send> {
         #[cfg(feature = "no_simd")]
         let simd = 1;
 

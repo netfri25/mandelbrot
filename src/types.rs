@@ -17,3 +17,9 @@ pub struct Dimensions {
     pub w: u64,
     pub h: u64,
 }
+
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct View {
+    pub start: Pos,
+    pub size: Size,
+}
