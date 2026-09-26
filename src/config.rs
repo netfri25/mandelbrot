@@ -9,7 +9,7 @@ use crate::high_precision::HighPrecision;
 use crate::producer::Producer;
 use crate::producer::threaded::ThreadedProducer;
 use crate::renderer::texture_renderer::TextureRenderer;
-use crate::renderer::texture_renderer::producer::ProducerTextureRenderer;
+use crate::renderer::texture_renderer::cpu::CpuTextureRenderer;
 
 #[derive(Parser)]
 pub struct Config {
@@ -89,7 +89,7 @@ impl Config {
         // TODO: allow to select a gpu texture renderer
         let producer = self.create_cpu_producer();
         let colorizer = self.create_cpu_colorizer();
-        Box::new(ProducerTextureRenderer::new(producer, colorizer))
+        Box::new(CpuTextureRenderer::new(producer, colorizer))
     }
 
     fn create_explorer(&self) -> Explorer {

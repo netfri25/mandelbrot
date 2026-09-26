@@ -4,12 +4,12 @@ use crate::producer::Producer;
 use crate::renderer::texture_renderer::TextureRenderer;
 use crate::types::{Dimensions, View};
 
-pub struct ProducerTextureRenderer<P, F> {
+pub struct CpuTextureRenderer<P, F> {
     producer: P,
     colorizer: F,
 }
 
-impl<P, F> ProducerTextureRenderer<P, F> {
+impl<P, F> CpuTextureRenderer<P, F> {
     pub fn new(producer: P, colorizer: F) -> Self {
         Self {
             producer,
@@ -18,7 +18,7 @@ impl<P, F> ProducerTextureRenderer<P, F> {
     }
 }
 
-impl<P, F> TextureRenderer for ProducerTextureRenderer<P, F>
+impl<P, F> TextureRenderer for CpuTextureRenderer<P, F>
 where
     P: Producer,
     F: FnMut(f32) -> Color,
