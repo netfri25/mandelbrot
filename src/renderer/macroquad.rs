@@ -4,13 +4,13 @@ use macroquad::prelude::*;
 
 use crate::explorer::Explorer;
 use crate::high_precision::HighPrecision;
-use crate::producer::Producer;
+use crate::renderer::texture_renderer::TextureRenderer;
 use crate::types::{Dimensions, Size};
 
 use super::Renderer;
 
-pub struct MacroquadRenderer<P> {
-    producer: P,
+pub struct MacroquadRenderer<R> {
+    texture_renderer: R,
     frame: Option<Texture2D>,
     resolution: f32,
     last_produce_duration: Duration,
@@ -19,10 +19,10 @@ pub struct MacroquadRenderer<P> {
     explorer: Explorer,
 }
 
-impl<P> MacroquadRenderer<P> {
-    pub fn new(producer: P, explorer: Explorer, resolution: f32) -> Self {
+impl<R> MacroquadRenderer<R> {
+    pub fn new(texture_renderer: R, explorer: Explorer, resolution: f32) -> Self {
         Self {
-            producer,
+            texture_renderer,
             frame: None,
             resolution,
             last_produce_duration: Duration::default(),
@@ -34,7 +34,7 @@ impl<P> MacroquadRenderer<P> {
 
     fn update_frame(&mut self, dims: Dimensions)
     where
-        P: Producer,
+        R: TextureRenderer,
     {
         let dims = Dimensions {
             w: (dims.w as f32 * self.resolution) as u64,
@@ -43,22 +43,11 @@ impl<P> MacroquadRenderer<P> {
 
         let view = self.explorer.view(&dims);
         let produce_start = Instant::now();
-        let values = self.producer.produce(&view, dims);
+        self.frame = Some(self.texture_renderer.render_texture(&view, dims));
         self.last_produce_duration = produce_start.elapsed();
 
-        let minimum = values.iter().fold(0.9, |a, b| b.min(a));
-
-        let mut image = Image::gen_image_color(dims.w as u16, dims.h as u16, Color::default());
         let ratio_size = self.explorer.ratio_size(&dims);
         self.last_size = self.explorer.zoom_size(&ratio_size);
-
-        let colors: Vec<_> = values
-            .into_iter()
-            .map(|pixel| select_color(pixel, minimum))
-            .collect();
-
-        image.update(&colors);
-        self.frame = Some(Texture2D::from_image(&image));
     }
 
     // returns `true` if the frame should be updated
@@ -165,9 +154,9 @@ impl<P> MacroquadRenderer<P> {
     }
 }
 
-impl<P> Renderer for MacroquadRenderer<P>
+impl<R> Renderer for MacroquadRenderer<R>
 where
-    P: Producer,
+    R: TextureRenderer,
 {
     fn render(&mut self) {
         let update = self.handle_input();
@@ -201,20 +190,4 @@ where
             self.show_info()
         }
     }
-}
-
-fn select_color(value: f32, minimum: f32) -> Color {
-    let l = BLACK;
-    let h = WHITE;
-    if value >= 1.0 {
-        return h;
-    }
-
-    let t = 1.0 - (-(value - minimum) / 0.1).exp();
-    Color::new(
-        l.r * (1.0 - t) + h.r * t,
-        l.g * (1.0 - t) + h.g * t,
-        l.b * (1.0 - t) + h.b * t,
-        1.,
-    )
 }

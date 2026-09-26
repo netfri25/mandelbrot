@@ -1,17 +1,20 @@
 use std::pin::Pin;
 
 use clap::{Parser, ValueEnum};
+use macroquad::color::Color;
 
 use crate::explorer::Explorer;
 use crate::fast_float::{FastF32, FastF64};
 use crate::high_precision::HighPrecision;
 use crate::producer::Producer;
 use crate::producer::threaded::ThreadedProducer;
+use crate::renderer::texture_renderer::TextureRenderer;
+use crate::renderer::texture_renderer::producer::ProducerTextureRenderer;
 
 #[derive(Parser)]
 pub struct Config {
     /// type of number to use for calculations
-    #[arg(value_enum, default_value_t = NumberType::F64)]
+    #[arg(short, long, default_value = "f64")]
     pub number_type: NumberType,
 
     /// amount of threads to use for rendering
@@ -48,11 +51,14 @@ impl Config {
             .build_global()
             .unwrap();
 
-        let producer = self.create_producer();
         let explorer = self.create_explorer();
         let resolution = self.resolution.0;
-        let mut renderer =
-            crate::renderer::macroquad::MacroquadRenderer::new(producer, explorer, resolution);
+        let texture_renderer = self.create_texture_renderer();
+        let mut renderer = crate::renderer::macroquad::MacroquadRenderer::new(
+            texture_renderer,
+            explorer,
+            resolution,
+        );
 
         let program = async move {
             loop {
@@ -79,27 +85,39 @@ impl Config {
         }
     }
 
+    fn create_texture_renderer(&self) -> Box<dyn TextureRenderer + 'static> {
+        // TODO: allow to select a gpu texture renderer
+        let producer = self.create_cpu_producer();
+        let colorizer = self.create_cpu_colorizer();
+        Box::new(ProducerTextureRenderer::new(producer, colorizer))
+    }
+
     fn create_explorer(&self) -> Explorer {
+        // TODO: make these configurable?
         let zoom = 3.5.into();
-        let offset = Default::default(); // TODO: make this configureable?
-        // let resolution = self.resolution.0;
+        let offset = Default::default();
         Explorer::new(zoom, offset)
     }
 
-    fn create_producer(&self) -> Box<dyn Producer + Send> {
+    fn create_cpu_colorizer(&self) -> impl FnMut(f32) -> Color + 'static {
+        // TODO: make this configurable
+        bernstein_colorizer
+    }
+
+    fn create_cpu_producer(&self) -> Box<dyn Producer + Send> {
         #[cfg(feature = "no_simd")]
-        let simd = 1;
+        let simd = 0;
 
         #[cfg(not(feature = "no_simd"))]
         let simd = self.simd;
 
         match self.number_type {
-            NumberType::F64 => self.create_simd_or_naive_producer::<f64>(simd),
-            NumberType::F32 => self.create_simd_or_naive_producer::<f32>(simd),
-            NumberType::FastF64 => self.create_naive_producer::<FastF64>(),
-            NumberType::FastF32 => self.create_naive_producer::<FastF32>(),
-            NumberType::Posit => self.create_naive_producer::<fast_posit::p64>(),
-            NumberType::HighPrecision => self.create_naive_producer::<HighPrecision>(),
+            NumberType::F64 => self.create_simd_or_naive_cpu_producer::<f64>(simd),
+            NumberType::F32 => self.create_simd_or_naive_cpu_producer::<f32>(simd),
+            NumberType::FastF64 => self.create_naive_cpu_producer::<FastF64>(),
+            NumberType::FastF32 => self.create_naive_cpu_producer::<FastF32>(),
+            NumberType::Posit => self.create_naive_cpu_producer::<fast_posit::p64>(),
+            NumberType::HighPrecision => self.create_naive_cpu_producer::<HighPrecision>(),
         }
     }
 
@@ -117,7 +135,7 @@ impl Config {
     }
 
     #[cfg(not(feature = "no_simd"))]
-    fn create_simd_producer<T, const LANES: usize>(&self) -> Box<dyn Producer + Send>
+    fn create_simd_cpu_producer<T, const LANES: usize>(&self) -> Box<dyn Producer + Send>
     where
         T: Send + 'static,
         crate::producer::simd::SimdProducer<T, LANES>: crate::producer::Producer,
@@ -126,7 +144,7 @@ impl Config {
         self.make_threaded(move || crate::producer::simd::SimdProducer::<T, LANES>::new(iterations))
     }
 
-    fn create_naive_producer<T>(&self) -> Box<dyn Producer + Send>
+    fn create_naive_cpu_producer<T>(&self) -> Box<dyn Producer + Send>
     where
         T: Send + 'static,
         crate::producer::naive::NaiveProducer<T>: crate::producer::Producer,
@@ -136,17 +154,17 @@ impl Config {
     }
 
     #[cfg(feature = "no_simd")]
-    fn create_simd_or_naive_producer<T>(&self, _lanes: u8) -> Box<dyn Producer + Send>
+    fn create_simd_or_naive_cpu_producer<T>(&self, _lanes: u8) -> Box<dyn Producer + Send>
     where
         T: Send + 'static,
         crate::producer::naive::NaiveProducer<T>: Producer + Send + 'static,
     {
-        self.create_naive_producer::<T>()
+        self.create_naive_cpu_producer::<T>()
     }
 
     // NOTE: this can probably be done with code generation, but a using `g<c-a>` in vim is enough
     #[cfg(not(feature = "no_simd"))]
-    fn create_simd_or_naive_producer<T>(&self, lanes: u8) -> Box<dyn Producer + Send>
+    fn create_simd_or_naive_cpu_producer<T>(&self, lanes: u8) -> Box<dyn Producer + Send>
     where
         T: Send + 'static,
         crate::producer::naive::NaiveProducer<T>: Producer + Send + 'static,
@@ -216,76 +234,76 @@ impl Config {
         crate::producer::simd::SimdProducer<T, 64>: crate::producer::Producer,
     {
         match lanes {
-            1 => self.create_simd_producer::<T, 1>(),
-            2 => self.create_simd_producer::<T, 2>(),
-            3 => self.create_simd_producer::<T, 3>(),
-            4 => self.create_simd_producer::<T, 4>(),
-            5 => self.create_simd_producer::<T, 5>(),
-            6 => self.create_simd_producer::<T, 6>(),
-            7 => self.create_simd_producer::<T, 7>(),
-            8 => self.create_simd_producer::<T, 8>(),
-            9 => self.create_simd_producer::<T, 9>(),
-            10 => self.create_simd_producer::<T, 10>(),
-            11 => self.create_simd_producer::<T, 11>(),
-            12 => self.create_simd_producer::<T, 12>(),
-            13 => self.create_simd_producer::<T, 13>(),
-            14 => self.create_simd_producer::<T, 14>(),
-            15 => self.create_simd_producer::<T, 15>(),
-            16 => self.create_simd_producer::<T, 16>(),
-            17 => self.create_simd_producer::<T, 17>(),
-            18 => self.create_simd_producer::<T, 18>(),
-            19 => self.create_simd_producer::<T, 19>(),
-            20 => self.create_simd_producer::<T, 20>(),
-            21 => self.create_simd_producer::<T, 21>(),
-            22 => self.create_simd_producer::<T, 22>(),
-            23 => self.create_simd_producer::<T, 23>(),
-            24 => self.create_simd_producer::<T, 24>(),
-            25 => self.create_simd_producer::<T, 25>(),
-            26 => self.create_simd_producer::<T, 26>(),
-            27 => self.create_simd_producer::<T, 27>(),
-            28 => self.create_simd_producer::<T, 28>(),
-            29 => self.create_simd_producer::<T, 29>(),
-            30 => self.create_simd_producer::<T, 30>(),
-            31 => self.create_simd_producer::<T, 31>(),
-            32 => self.create_simd_producer::<T, 32>(),
-            33 => self.create_simd_producer::<T, 33>(),
-            34 => self.create_simd_producer::<T, 34>(),
-            35 => self.create_simd_producer::<T, 35>(),
-            36 => self.create_simd_producer::<T, 36>(),
-            37 => self.create_simd_producer::<T, 37>(),
-            38 => self.create_simd_producer::<T, 38>(),
-            39 => self.create_simd_producer::<T, 39>(),
-            40 => self.create_simd_producer::<T, 40>(),
-            41 => self.create_simd_producer::<T, 41>(),
-            42 => self.create_simd_producer::<T, 42>(),
-            43 => self.create_simd_producer::<T, 43>(),
-            44 => self.create_simd_producer::<T, 44>(),
-            45 => self.create_simd_producer::<T, 45>(),
-            46 => self.create_simd_producer::<T, 46>(),
-            47 => self.create_simd_producer::<T, 47>(),
-            48 => self.create_simd_producer::<T, 48>(),
-            49 => self.create_simd_producer::<T, 49>(),
-            50 => self.create_simd_producer::<T, 50>(),
-            51 => self.create_simd_producer::<T, 51>(),
-            52 => self.create_simd_producer::<T, 52>(),
-            53 => self.create_simd_producer::<T, 53>(),
-            54 => self.create_simd_producer::<T, 54>(),
-            55 => self.create_simd_producer::<T, 55>(),
-            56 => self.create_simd_producer::<T, 56>(),
-            57 => self.create_simd_producer::<T, 57>(),
-            58 => self.create_simd_producer::<T, 58>(),
-            59 => self.create_simd_producer::<T, 59>(),
-            60 => self.create_simd_producer::<T, 60>(),
-            61 => self.create_simd_producer::<T, 61>(),
-            62 => self.create_simd_producer::<T, 62>(),
-            63 => self.create_simd_producer::<T, 63>(),
-            64 => self.create_simd_producer::<T, 64>(),
-            _ => self.create_naive_producer::<T>(),
+            1 => self.create_simd_cpu_producer::<T, 1>(),
+            2 => self.create_simd_cpu_producer::<T, 2>(),
+            3 => self.create_simd_cpu_producer::<T, 3>(),
+            4 => self.create_simd_cpu_producer::<T, 4>(),
+            5 => self.create_simd_cpu_producer::<T, 5>(),
+            6 => self.create_simd_cpu_producer::<T, 6>(),
+            7 => self.create_simd_cpu_producer::<T, 7>(),
+            8 => self.create_simd_cpu_producer::<T, 8>(),
+            9 => self.create_simd_cpu_producer::<T, 9>(),
+            10 => self.create_simd_cpu_producer::<T, 10>(),
+            11 => self.create_simd_cpu_producer::<T, 11>(),
+            12 => self.create_simd_cpu_producer::<T, 12>(),
+            13 => self.create_simd_cpu_producer::<T, 13>(),
+            14 => self.create_simd_cpu_producer::<T, 14>(),
+            15 => self.create_simd_cpu_producer::<T, 15>(),
+            16 => self.create_simd_cpu_producer::<T, 16>(),
+            17 => self.create_simd_cpu_producer::<T, 17>(),
+            18 => self.create_simd_cpu_producer::<T, 18>(),
+            19 => self.create_simd_cpu_producer::<T, 19>(),
+            20 => self.create_simd_cpu_producer::<T, 20>(),
+            21 => self.create_simd_cpu_producer::<T, 21>(),
+            22 => self.create_simd_cpu_producer::<T, 22>(),
+            23 => self.create_simd_cpu_producer::<T, 23>(),
+            24 => self.create_simd_cpu_producer::<T, 24>(),
+            25 => self.create_simd_cpu_producer::<T, 25>(),
+            26 => self.create_simd_cpu_producer::<T, 26>(),
+            27 => self.create_simd_cpu_producer::<T, 27>(),
+            28 => self.create_simd_cpu_producer::<T, 28>(),
+            29 => self.create_simd_cpu_producer::<T, 29>(),
+            30 => self.create_simd_cpu_producer::<T, 30>(),
+            31 => self.create_simd_cpu_producer::<T, 31>(),
+            32 => self.create_simd_cpu_producer::<T, 32>(),
+            33 => self.create_simd_cpu_producer::<T, 33>(),
+            34 => self.create_simd_cpu_producer::<T, 34>(),
+            35 => self.create_simd_cpu_producer::<T, 35>(),
+            36 => self.create_simd_cpu_producer::<T, 36>(),
+            37 => self.create_simd_cpu_producer::<T, 37>(),
+            38 => self.create_simd_cpu_producer::<T, 38>(),
+            39 => self.create_simd_cpu_producer::<T, 39>(),
+            40 => self.create_simd_cpu_producer::<T, 40>(),
+            41 => self.create_simd_cpu_producer::<T, 41>(),
+            42 => self.create_simd_cpu_producer::<T, 42>(),
+            43 => self.create_simd_cpu_producer::<T, 43>(),
+            44 => self.create_simd_cpu_producer::<T, 44>(),
+            45 => self.create_simd_cpu_producer::<T, 45>(),
+            46 => self.create_simd_cpu_producer::<T, 46>(),
+            47 => self.create_simd_cpu_producer::<T, 47>(),
+            48 => self.create_simd_cpu_producer::<T, 48>(),
+            49 => self.create_simd_cpu_producer::<T, 49>(),
+            50 => self.create_simd_cpu_producer::<T, 50>(),
+            51 => self.create_simd_cpu_producer::<T, 51>(),
+            52 => self.create_simd_cpu_producer::<T, 52>(),
+            53 => self.create_simd_cpu_producer::<T, 53>(),
+            54 => self.create_simd_cpu_producer::<T, 54>(),
+            55 => self.create_simd_cpu_producer::<T, 55>(),
+            56 => self.create_simd_cpu_producer::<T, 56>(),
+            57 => self.create_simd_cpu_producer::<T, 57>(),
+            58 => self.create_simd_cpu_producer::<T, 58>(),
+            59 => self.create_simd_cpu_producer::<T, 59>(),
+            60 => self.create_simd_cpu_producer::<T, 60>(),
+            61 => self.create_simd_cpu_producer::<T, 61>(),
+            62 => self.create_simd_cpu_producer::<T, 62>(),
+            63 => self.create_simd_cpu_producer::<T, 63>(),
+            64 => self.create_simd_cpu_producer::<T, 64>(),
+            _ => self.create_naive_cpu_producer::<T>(),
         }
     }
 }
 
-#[derive(Default, Clone, Copy, ValueEnum)]
+#[derive(Debug, Default, Clone, Copy, ValueEnum)]
 pub enum NumberType {
     #[default]
     /// double precision floating point value. supports SIMD.
@@ -343,4 +361,15 @@ impl Resolution {
 
         Ok(Self(value))
     }
+}
+
+fn bernstein_colorizer(t: f32) -> Color {
+    let t = t.clamp(0.0, 1.0);
+
+    Color::new(
+        9.0 * (1.0 - t) * t * t * t,
+        15.0 * (1.0 - t) * (1.0 - t) * t * t,
+        8.5 * (1.0 - t) * (1.0 - t) * (1.0 - t) * t,
+        1.0,
+    )
 }
