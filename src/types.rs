@@ -1,15 +1,15 @@
 use crate::high_precision::HighPrecision;
 
 #[derive(Debug, Default, Clone, PartialEq)]
-pub struct Pos {
-    pub x: HighPrecision,
-    pub y: HighPrecision,
+pub struct Pos<T = HighPrecision> {
+    pub x: T,
+    pub y: T,
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
-pub struct Size {
-    pub w: HighPrecision,
-    pub h: HighPrecision,
+pub struct Size<T = HighPrecision> {
+    pub w: T,
+    pub h: T,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
@@ -19,7 +19,7 @@ pub struct Dimensions {
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
-pub struct View {
-    pub start: Pos,
-    pub size: Size,
+pub struct View<T = HighPrecision> {
+    pub start: Pos<T>,
+    pub size: Size<T>,
 }
