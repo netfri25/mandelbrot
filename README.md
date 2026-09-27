@@ -7,6 +7,7 @@ simple, efficient, generic, and well designed [Mandelbrot set](https://en.wikipe
  - Multithreaded
  - SIMD support, using Rust's Portable SIMD module ([std::simd](https://doc.rust-lang.org/stable/std/simd/index.html))
  - Generic over everything - the type of the number used for calculations, the renderer, the method for producing values, etc.
+ - GPU acceleration (must be enabled with the `-g` flag, and only supports f32 for now)
  - Configurable amount of SIMD lanes (from 1 to 64, inclusive)
  - Supports multiple number formats:
     - 32 bit float (with and without SIMD)
@@ -21,7 +22,7 @@ first, make sure you have `cargo` installed. then, run the following to build:
 ```shell
 cargo build -r
 ```
-the compiler times may suffer. this is because the SIMD implementation uses a compile-time known amount of lanes, so it generates all possible lane count values as different types, and it causes heavy [monomorphization](https://en.wikipedia.org/wiki/Monomorphization).
+the compile times may suffer. this is because the SIMD implementation uses a compile-time known amount of lanes, so it generates all possible lane count values as different types, and it causes heavy [monomorphization](https://en.wikipedia.org/wiki/Monomorphization).
 
 to make it more sufferable, you can compile it without SIMD:
 ```shell
