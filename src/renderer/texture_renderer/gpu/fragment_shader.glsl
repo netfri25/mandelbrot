@@ -39,9 +39,7 @@ void main() {
         return;
     }
 
-    float magnitude = length(z);
-    float smooth_i = float(i) + 1.0 - log(log(magnitude)) / log(2.0);
-    float t = sqrt(smooth_i) * 0.05;
+    float t = sqrt(float(i)) * 0.05;
 
     gl_FragColor = vec4(color(t), 1.0);
 }
