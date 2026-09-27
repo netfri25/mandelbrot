@@ -1,3 +1,4 @@
+use std::num::NonZeroU32;
 use std::ops::{Deref, DerefMut};
 
 use crate::types::{Dimensions, View};
@@ -10,15 +11,15 @@ pub mod threaded;
 pub trait Producer {
     /// produce values to be rendered as the mandelbrot set
     ///
-    /// for each "pixel", returns a value from 0 to 1 that represents if it's outside of the
-    /// mandelbrot set (0) or inside (1).
+    /// for each "pixel", returns a value that represents the number of iterations for divergence,
+    /// or None if it didn't diverge.
     ///
     /// **Parameters**
     ///
     /// * `view`: section in the mandelbrot set to explore
     /// * `dims`: the amount of "pixels" to generate
     ///
-    fn produce(&mut self, view: &View, dims: Dimensions) -> Vec<f32>;
+    fn produce(&mut self, view: &View, dims: Dimensions) -> Vec<Option<NonZeroU32>>;
 }
 
 impl<P> Producer for P
@@ -26,7 +27,7 @@ where
     P: DerefMut,
     <P as Deref>::Target: Producer,
 {
-    fn produce(&mut self, view: &View, dims: Dimensions) -> Vec<f32> {
+    fn produce(&mut self, view: &View, dims: Dimensions) -> Vec<Option<NonZeroU32>> {
         self.deref_mut().produce(view, dims)
     }
 }

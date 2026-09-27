@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 use rayon::prelude::*;
 
 use crate::from_f64::FromF64;
@@ -28,7 +30,7 @@ where
     F: FnMut() -> P,
     P: Producer + Send,
 {
-    fn produce(&mut self, view: &View, dims: Dimensions) -> Vec<f32> {
+    fn produce(&mut self, view: &View, dims: Dimensions) -> Vec<Option<NonZeroU32>> {
         let section_h = dims.h / self.threads as u64;
         let section_h_rem = dims.h % self.threads as u64;
 

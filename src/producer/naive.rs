@@ -1,4 +1,5 @@
 use std::marker::PhantomData;
+use std::num::NonZeroU32;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
 use super::Producer;
@@ -32,7 +33,7 @@ where
     T: Mul<T, Output = T>,
     T: Div<T, Output = T>,
 {
-    fn produce(&mut self, view: &View, dims: Dimensions) -> Vec<f32> {
+    fn produce(&mut self, view: &View, dims: Dimensions) -> Vec<Option<NonZeroU32>> {
         let max_iterations = self.max_iterations;
         let step_x = view.size.w / HighPrecision::from_f64(dims.w as f64);
         let step_y = view.size.h / HighPrecision::from_f64(dims.h as f64);
@@ -45,8 +46,7 @@ where
                     .map(move |x| {
                         let x: T = x.into();
                         let y: T = y.into();
-                        (divergence_iteration(x, y, max_iterations) as f32)
-                            .algebraic_div(max_iterations as f32)
+                        divergence_iteration(x, y, max_iterations)
                     })
             })
             .collect()
@@ -60,7 +60,7 @@ where
     std::iter::successors(Some(start), move |x| Some(x.clone() + step.clone()))
 }
 
-fn divergence_iteration<T>(re: T, im: T, max_iterations: u32) -> u32
+fn divergence_iteration<T>(re: T, im: T, max_iterations: u32) -> Option<NonZeroU32>
 where
     T: FromF64 + Clone + PartialOrd,
     T: Neg<Output = T>,
@@ -91,11 +91,11 @@ where
 
         // if it converges earlier, then it's inside
         if prev_x == x && prev_y == y {
-            return max_iterations;
+            return None;
         }
 
         iteration += 1;
     }
 
-    iteration
+    NonZeroU32::new(iteration)
 }

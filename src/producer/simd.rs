@@ -1,4 +1,5 @@
 use std::marker::PhantomData;
+use std::num::NonZeroU32;
 use std::ops::{Add, Div, Mul, Sub};
 
 use std::simd::{Mask, MaskElement, Select, Simd, SimdCast, SimdElement, cmp::SimdPartialOrd};
@@ -36,7 +37,7 @@ where
     Simd<T, LANES>: Sub<Simd<T, LANES>, Output = Simd<T, LANES>>,
     Simd<T, LANES>: Mul<Simd<T, LANES>, Output = Simd<T, LANES>>,
 {
-    fn produce(&mut self, view: &View, dims: Dimensions) -> Vec<f32> {
+    fn produce(&mut self, view: &View, dims: Dimensions) -> Vec<Option<NonZeroU32>> {
         let max_iterations = self.max_iterations;
 
         let step_x = T::from_f64(view.size.w.to_f64() / dims.w as f64);
@@ -67,10 +68,7 @@ where
             let mut xs = Simd::splat(start_x) + step_xs * lane_offsets;
             for _ in 0..chunks_count {
                 let iterations = divergence_iteration_simd(xs, ys, max_iterations);
-
-                let normalized = iterations
-                    .to_array()
-                    .map(|value| value as f32 / max_iterations as f32);
+                let normalized = iterations.to_array().map(NonZeroU32::new);
 
                 output.extend(normalized);
 
@@ -84,11 +82,10 @@ where
                 let xs = Simd::splat(start_x) + step_xs * lane_offsets;
 
                 let iterations = divergence_iteration_simd(xs, ys, max_iterations);
-
                 let normalized = iterations
                     .to_array()
                     .into_iter()
-                    .map(|value| value as f32 / max_iterations as f32)
+                    .map(NonZeroU32::new)
                     .take(remainder as usize);
 
                 output.extend(normalized);
@@ -127,8 +124,9 @@ where
     let mut x = x0;
     let mut y = y0;
 
-    let mut iterations = Simd::splat(0);
+    let mut iterations = Simd::splat(1);
 
+    let mut escaped = Mask::splat(false);
     for _ in 0..max_iterations {
         let x2 = x * x;
         let y2 = y * y;
@@ -136,17 +134,17 @@ where
         let new_y = x * y;
         let new_x = x2 - y2;
 
-        let active = (x2 + y2).simd_le(bound);
+        escaped = (x2 + y2).simd_gt(bound);
 
-        y = new_y + new_y + y0;
-        x = new_x + x0;
+        y = escaped.select(y, new_y + new_y + y0);
+        x = escaped.select(x, new_x + x0);
 
-        if !active.any() {
+        if escaped.all() {
             break;
         }
 
-        iterations += active.cast::<i32>().select(one, zero);
+        iterations += escaped.cast::<i32>().select(zero, one);
     }
 
-    iterations
+    escaped.cast::<i32>().select(iterations, Simd::splat(0))
 }

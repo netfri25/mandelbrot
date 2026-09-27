@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 use macroquad::prelude::{Color, Image, Texture2D};
 
 use crate::producer::Producer;
@@ -21,7 +23,7 @@ impl<P, F> CpuTextureRenderer<P, F> {
 impl<P, F> TextureRenderer for CpuTextureRenderer<P, F>
 where
     P: Producer,
-    F: FnMut(f32) -> Color,
+    F: FnMut(Option<NonZeroU32>) -> Color,
 {
     fn render_texture(&mut self, view: &View, dims: Dimensions) -> Texture2D {
         let values = self.producer.produce(view, dims);
